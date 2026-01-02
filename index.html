@@ -151,7 +151,7 @@
 </div>
 
 <script>
-const FUNCTION_URL = "https://<deine-function-app>.azurewebsites.net/api/mc-server-func";
+const BaseURL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-server-func";
 
 const statusBox = document.getElementById('statusBox');
 const statusText = document.getElementById('statusText');
@@ -169,7 +169,7 @@ async function updateStatus(showLoading = true){
         statusIcon.className = "fas fa-circle-notch fa-spin";
     }
     try {
-        const res = await fetch(`${FUNCTION_URL}?action=status`);
+        const res = await fetch(`${BaseURL}?action=status`);
         const data = await res.json();
         let statusClass = "stopped";
         let iconClass = "fas fa-times-circle";
@@ -197,7 +197,7 @@ async function performAction(action){
     const body = { action: action, password: pwd };
     log(`Sende Aktion: ${action}...`);
     try {
-        const res = await fetch(FUNCTION_URL, {
+        const res = await fetch(BaseURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
