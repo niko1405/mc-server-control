@@ -105,9 +105,10 @@
         width: 100%;
     }
 
-    input[type="password"] {
+    /* Input Styling angepasst (ID statt type selector), damit Style bleibt wenn type="text" */
+    #passwordInput {
         width: 100%;
-        padding: 12px 15px;
+        padding: 12px 45px 12px 15px; /* Rechts mehr Platz für das Icon */
         background: #2b2b36;
         border: 1px solid #444;
         border-radius: 8px;
@@ -118,9 +119,25 @@
         outline: none;
     }
 
-    input[type="password"]:focus {
+    #passwordInput:focus {
         border-color: var(--accent-blue);
         box-shadow: 0 0 8px rgba(41, 121, 255, 0.3);
+    }
+
+    /* Toggle Password Icon Styling */
+    .toggle-password {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #888;
+        font-size: 1rem;
+        transition: color 0.2s;
+        z-index: 5;
+    }
+    .toggle-password:hover {
+        color: #fff;
     }
 
     /* Shake Animation for Wrong Password */
@@ -252,7 +269,9 @@
     <div class="controls">
         <div class="input-group">
             <input type="password" id="passwordInput" placeholder="Passwort eingeben..." autocomplete="off">
+            <i class="fas fa-eye toggle-password" onclick="togglePassword()" title="Passwort anzeigen"></i>
         </div>
+        
         <div id="messageArea" class="msg-area">Passwort erforderlich!</div>
 
         <div class="btn-group">
@@ -299,6 +318,20 @@
     let pollInterval = null;     
     let fastPollTimer = null;    
     let currentStatus = "unknown"; 
+
+    // === Password Toggle Function ===
+    function togglePassword() {
+        const icon = document.querySelector('.toggle-password');
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = "password";
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
 
     // === Log Logic ===
     function log(msg, type = 'info') {
@@ -423,7 +456,6 @@
         }
 
         log(`Sende Befehl: ${action.toUpperCase()}...`, "info");
-        setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
 
         try {
             const res = await fetch(API_URL, {
@@ -444,6 +476,7 @@
             if (res.ok) {
                 if(data.status === 'already_running') {
                     log("Der Server läuft bereits.", "warn");
+                    log("Joine dem Server auf " + IP, "info");
                     setStatusUI('running', ONLINE_STATE);
                     return;
                 }
@@ -454,6 +487,7 @@
                     return;
                 }
 
+                setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
                 log(data.message, "info");
                 
                 if(action === 'start') {
