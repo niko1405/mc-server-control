@@ -109,11 +109,17 @@
         border-color: var(--accent-red);
         background: rgba(255, 82, 82, 0.1);
     }
-    .status-working { 
+    .status-booting { 
         color: var(--accent-yellow); 
         border-color: var(--accent-yellow);
         background: rgba(255, 234, 0, 0.1);
         animation: pulse-yellow 1.5s infinite;
+    }
+    .status-working { 
+        color: var(--accent-blue); 
+        border-color: var(--accent-blue);
+        background: rgba(41, 121, 255, 0.1);
+        animation: pulse-blue 1.5s infinite;
     }
     .status-offline { color: #777; border-color: #555; }
     .status-sleep { color: var(--accent-purple); border-color: var(--accent-purple); opacity: 0.7; }
@@ -325,6 +331,11 @@
         70% { box-shadow: 0 0 0 10px rgba(255, 234, 0, 0); }
         100% { box-shadow: 0 0 0 0 rgba(255, 234, 0, 0); }
     }
+    @keyframes pulse-blue {
+        0% { box-shadow: 0 0 0 0 rgba(41, 121, 255, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(41, 121, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(41, 121, 255, 0); }
+    }
     @keyframes shake {
         0%, 100% { transform: translateX(0); }
         25% { transform: translateX(-5px); }
@@ -415,9 +426,9 @@
     const API_URL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-vm-control";
     const IP = "4.219.14.199";
 
-    const ONLINE_STATE = "SERVER ONLINE"; // Grün: VM an + Java an
-    const OFFLINE_STATE = "SERVER OFFLINE"; // Rot: VM aus
-    const VM_ONLY_STATE = "VM LÄUFT..."; // Gelb: VM an, aber Java antwortet (noch) nicht
+    const ONLINE_STATE = "SERVER ONLINE"; 
+    const OFFLINE_STATE = "SERVER OFFLINE";
+    const BOOTING_STATE = "JAVA STARTET...";
     const ERROR_STATE = "FEHLER";
 
     // UI Elements
@@ -432,14 +443,14 @@
     const refreshBtnIcon = document.getElementById('refreshIcon');
 
     // Logic Variables
-    let pollInterval = null;     // Das Haupt-Intervall (30s)
-    let fastPollTimer = null;    // Das schnelle Intervall beim Starten (3s)
+    let pollInterval = null;     
+    let fastPollTimer = null;    
     let currentAzureStatus = "unknown"; 
     let isProcessingAction = false; 
 
-    // Activity / Visibility Tracking
+    // Activity Tracking
     let lastActivityTime = Date.now();
-    const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 Minuten
+    const IDLE_TIMEOUT = 5 * 60 * 1000; 
     let isPollingPaused = false;
 
     ipLabel.textContent = IP;
@@ -463,8 +474,8 @@
     function forceRefresh() {
         log("Manuelles Update angefordert...", "info");
         spinRefreshIcon();
-        resetActivityTimer(); // Setzt Timeout zurück
-        checkStatus(false, true); // Erzwingt sofortigen Check
+        resetActivityTimer();
+        checkStatus(false, true);
     }
 
     function resetActivityTimer() {
@@ -483,7 +494,6 @@
 
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
-            // Wenn Tab wieder sichtbar, sofort Timer resetten und Checken
             resetActivityTimer();
             checkStatus(true, true);
         }
@@ -527,31 +537,40 @@
         else playerBox.classList.add('hidden');
     }
 
+    // --- UI Status Helper ---
     function setStatusUI(state, text) {
         statusBadge.className = 'status-indicator'; 
         statusIcon.className = '';
 
-        if(state === 'running') { // GRÜN (Alles OK)
+        if(state === 'running') { 
+            // GRÜN (Port offen)
             statusBadge.classList.add('status-running');
             statusIcon.classList.add('fas', 'fa-check-circle');
             text = text || ONLINE_STATE;
-        } else if(state === 'stopped') { // ROT (VM aus)
+        } else if(state === 'stopped') { 
+            // ROT (VM aus)
             statusBadge.classList.add('status-stopped');
             statusIcon.classList.add('fas', 'fa-stop-circle');
             text = text || OFFLINE_STATE;
             togglePlayerBox(false);
-        } else if(state === 'working') { // GELB (VM an, aber Java lädt/fehlt)
+        } else if(state === 'booting') { 
+            // GELB (VM an, Port noch zu)
+            statusBadge.classList.add('status-booting');
+            statusIcon.classList.add('fas', 'fa-cog', 'fa-spin'); // Zahnrad für Booting
+            text = text || BOOTING_STATE;
+            togglePlayerBox(true); 
+        } else if(state === 'working') { 
+            // BLAU (API arbeitet, Wartezeit)
             statusBadge.classList.add('status-working');
             statusIcon.classList.add('fas', 'fa-sync-alt', 'fa-spin');
-            togglePlayerBox(true); 
-        } else if (state === 'sleep') { // LILA (Pause)
+            text = text || "LADE...";
+        } else if (state === 'sleep') { 
             statusBadge.classList.add('status-sleep');
             statusIcon.classList.add('fas', 'fa-moon');
-            text = "DASHBOARD PAUSIERT";
+            text = "PAUSE";
         } else {
             statusBadge.classList.add('status-offline');
             statusIcon.classList.add('fas', 'fa-question-circle');
-            togglePlayerBox(false);
         }
         statusText.textContent = text;
     }
@@ -566,13 +585,13 @@
         }, 2000);
     }
 
-    // === Player & Service Check (Zweite Ebene der Wahrheit) ===
+    // === Player Info (Nur wenn running) ===
     async function updatePlayerInfo() {
         const countLabel = document.getElementById('playerCount');
         const listDiv = document.getElementById('playerList');
 
         if (countLabel.textContent === "0 / 0" || countLabel.textContent === "- / -") {
-             listDiv.innerHTML = '<span class="no-players"><i class="fas fa-sync fa-spin"></i> Prüfe Minecraft...</span>';
+             listDiv.innerHTML = '<span class="no-players"><i class="fas fa-sync fa-spin"></i> Lade Spielerliste...</span>';
         }
 
         try {
@@ -581,9 +600,6 @@
             const data = await res.json();
 
             if (data.online) {
-                // === ECHTER ONLINE STATUS ===
-                setStatusUI('running', ONLINE_STATE);
-                
                 countLabel.textContent = `${data.players.online} / ${data.players.max}`;
                 listDiv.innerHTML = ''; 
                 
@@ -597,25 +613,19 @@
                 } else {
                     listDiv.innerHTML = '<span class="no-players">Niemand da... 🦗</span>';
                 }
-                return true; 
             } else {
-                // === VM AN, ABER MINECRAFT AUS/BOOTET ===
-                setStatusUI('working', VM_ONLY_STATE);
+                // Falls API kurz Schluckauf hat, aber Port offen ist
                 countLabel.textContent = "- / -";
-                listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-yellow)"><i class="fas fa-cog fa-spin"></i> Server fährt hoch...</span>';
-                return false; 
+                listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-yellow)">Warte auf Spielerdaten...</span>';
             }
         } catch (e) {
             console.log("Fehler beim Spieler-Check:", e);
-            listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-red)">API Fehler</span>';
-            return false;
         }
     }
 
-    // === Status Check (Erste Ebene der Wahrheit) ===
+    // --- Status Check (Backend Driven) ---
     async function checkStatus(isAuto = true, updateUI = true) {
         if (isProcessingAction && isAuto) return currentAzureStatus; 
-
         if (isAuto) spinRefreshIcon();
         
         try {
@@ -627,17 +637,25 @@
 
             if (updateUI && !isProcessingAction) {
                 if(data.status === "running") {
-                    setStatusUI('working', "VM LÄUFT...");
-                    if(!isAuto || hasChanged) log(`VM ist aktiv. Prüfe Minecraft...`, "info");
+                    // Backend sagt: Port 25565 ist offen!
+                    setStatusUI('running');
+                    if(hasChanged) log("✅ Port offen! Minecraft bereit.", "success");
                     
+                    // Spielerliste laden
                     await updatePlayerInfo(); 
                     
-                } else if (data.status === "starting") {
-                    setStatusUI('working', "BOOTET...");
-                    togglePlayerBox(false);
+                } else if (data.status === "booting" || data.status === "starting") {
+                    // Backend sagt: VM an, aber Port zu
+                    setStatusUI('booting');
+                    if(hasChanged && isAuto) log("⏳ VM läuft, warte auf Java...", "warn");
+                    // Player Box zeigen für Feedback ("Java startet...")
+                    togglePlayerBox(true);
+                    document.getElementById('playerList').innerHTML = '<span class="no-players" style="color:var(--accent-yellow)"><i class="fas fa-cog fa-spin"></i> Fahre hoch...</span>';
+                    document.getElementById('playerCount').textContent = "- / -";
+
                 } else {
-                    setStatusUI('stopped', OFFLINE_STATE);
-                    if(!isAuto || hasChanged) log("Server ist OFFLINE.", "error");
+                    setStatusUI('stopped');
+                    if(hasChanged && isAuto) log("Server ist OFFLINE.", "error");
                     togglePlayerBox(false);
                 }
             }
@@ -646,14 +664,13 @@
 
         } catch (err) {
             if(updateUI && !isProcessingAction) setStatusUI('offline', ERROR_STATE);
-            if(!isAuto) log("Status-Fehler: " + err.message, "error");
             return "error";
         }
     }
 
-    // === Monitoring nach Aktion (Start/Stop) ===
+    // --- Monitoring (Warten bis Backend Status bestätigt) ---
     function startMonitoring(targetState) {
-        if(pollInterval) clearInterval(pollInterval); // Auto-Refresh stoppen während Monitoring
+        if(pollInterval) clearInterval(pollInterval);
         if(fastPollTimer) clearInterval(fastPollTimer);
 
         log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
@@ -661,19 +678,21 @@
         fastPollTimer = setInterval(async () => {
             const status = await checkStatus(false, false); 
             
+            // Wenn Ziel Running: Warten auf "running" (Port offen)
+            // Wenn Ziel Stopped: Warten auf "stopped" (VM aus)
             if (status === targetState) {
                 clearInterval(fastPollTimer);
                 isProcessingAction = false; 
 
                 if(targetState === 'running') {
+                    setStatusUI('running');
                     await updatePlayerInfo();
-                    log(`Startvorgang abgeschlossen.`, "success");
-                    log("Joine unter: " + IP, "info");
+                    log(`🚀 Start abgeschlossen!`, "success");
+                    log(`👉 <b>Joine jetzt: ${IP}</b>`, "info");
                 } else {
-                    setStatusUI('stopped', OFFLINE_STATE);
+                    setStatusUI('stopped');
                     log("Server ist jetzt AUS.", "error"); 
                 }
-                // Monitoring fertig -> Auto-Refresh wieder anwerfen
                 startAutoRefresh();
             } 
         }, 3000); 
@@ -692,7 +711,7 @@
         }
         
         if (action === 'start' && currentAzureStatus === 'running') {
-             log("VM läuft bereits. Prüfe Minecraft...", "warn");
+             log("Server läuft bereits (Port offen).", "success");
              checkStatus(false, true);
              return;
         }
@@ -726,16 +745,18 @@
             }
 
             if (res.ok) {
-                if(data.status.includes('already')) {
-                    isProcessingAction = false;
-                    checkStatus(true, true);
+                if(data.status.includes('already') || data.status === "booting") {
+                    // Falls er schon bootet, übernehmen wir das Monitoring
+                    isProcessingAction = false; // Kurz freigeben für Check
                     log(data.message, "warn");
+                    if(action === 'start') startMonitoring('running');
                     return;
                 }
+                
                 log(data.message, "success");
                 
                 if(action === 'start') {
-                    log("VM fährt hoch. Warte auf Ping...", "info");
+                    log("VM fährt hoch. Warte auf Port...", "info");
                     startMonitoring('running');
                 } else if (action === 'stop') {
                     log("VM wird jetzt dealloziert.", "info");
@@ -753,20 +774,14 @@
         }
     }
 
-    // === AUTO REFRESH LOOP (setInterval) ===
-    // Das ist die robuste Methode. Sie läuft immer, egal was passiert.
+    // === AUTO REFRESH LOOP ===
     function startAutoRefresh() {
         if(pollInterval) clearInterval(pollInterval);
         
         console.log("Starte Auto-Refresh (alle 30s)");
 
         pollInterval = setInterval(() => {
-            console.log("Timer Tick: " + new Date().toLocaleTimeString()); // Debug Log
-
-            if (document.hidden) {
-                console.log("-> Tab hidden, skip fetch.");
-                return; 
-            }
+            if (document.hidden) return;
             
             if (Date.now() - lastActivityTime > IDLE_TIMEOUT) {
                 if(!isPollingPaused) {
@@ -776,11 +791,9 @@
                 }
                 return;
             }
-            
-            // Fetch durchführen
             checkStatus(true, true);
 
-        }, 30000); // 30 Sekunden
+        }, 30000); 
     }
 
     // Initialer Start
