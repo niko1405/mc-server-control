@@ -254,6 +254,11 @@
     const API_URL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-vm-control";
     const IP = "4.219.14.199";
 
+    const ONLINE_STATE = "SERVER ONLINE";
+    const OFFLINE_STATE = "SERVER OFFLINE";
+    const LOADING_STATE = "Lade...";
+    const ERROR_STATE = "FEHLER";
+
     const statusBadge = document.getElementById('statusBadge');
     const statusText = document.getElementById('statusText');
     const statusIcon = document.getElementById('statusIcon');
@@ -316,7 +321,7 @@
 
     // === Status Check ===
     async function checkStatus(isAuto = true) {
-        if(!isAuto) setStatusUI('working', 'Lade...');
+        if(!isAuto) setStatusUI('working', LOADING_STATE);
 
         try {
             const res = await fetch(`${API_URL}?action=status`);
@@ -327,16 +332,16 @@
             currentStatus = data.status;
 
             if(data.status === "running") {
-                setStatusUI('running', 'SERVER LÄUFT');
+                setStatusUI('running', ONLINE_STATE);
             } else {
-                setStatusUI('stopped', 'SERVER GESTOPPT');
+                setStatusUI('stopped', OFFLINE_STATE);
             }
             
             // Rückgabe für die "Smart Polling" Funktion
             return data.status;
 
         } catch (err) {
-            setStatusUI('offline', 'VERBINDUNGSFEHLER');
+            setStatusUI('offline', ERROR_STATE);
             if(!isAuto) log("Fehler beim Status-Check: " + err.message, "error");
             return "error";
         }
@@ -344,31 +349,29 @@
 
     // === Smart Polling ===
     function startMonitoring(targetState) {
-        // Stoppe den normalen langsamen Interval
         if(pollInterval) clearInterval(pollInterval);
         if(fastPollTimer) clearInterval(fastPollTimer);
 
         log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
 
         fastPollTimer = setInterval(async () => {
-            const status = await checkStatus(true); // true = leise Abfrage ohne Log-Spam
+            const status = await checkStatus(true); 
 
             if (status === targetState) {
-                // ZIEL ERREICHT!
-                clearInterval(fastPollTimer); // Schnelles Fragen stoppen
+                clearInterval(fastPollTimer); // stop fast polling
                 
                 if(targetState === 'running') {
                     log(`Server ist jetzt ONLINE auf ${IP}!`, "success");
                     log("Du kannst den Server nun joinen.", "info");
                 } else {
-                    log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); // Rot für Stop
+                    log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); 
                 }
 
-                // Normalen Rhythmus (30s) wieder starten
+                // start normal polling again
                 startAutoRefresh();
             } 
-            // Falls status noch "starting" oder "stopping" ist (aus deinem PS Skript), warten wir weiter...
-        }, 5000); // Alle 5 Sekunden prüfen
+            
+        }, 5000); // refresh every 5 seconds
     }
 
     // === Action Trigger ===
@@ -381,7 +384,6 @@
             return;
         }
 
-        setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
         log(`Sende Befehl: ${action.toUpperCase()}...`, "info");
 
         try {
@@ -403,7 +405,7 @@
             if (res.ok) {
                 if(data.status === 'already_running') {
                     log("Der Server läuft bereits.", "warn");
-                    log(`Joine jetzt mit der IP ${IP}`, "success");
+                    log(`Joine jetzt mit der IP ${IP}!`, "success");
                     return;
                 }
 
@@ -415,8 +417,8 @@
 
                 // Befehl wurde von Azure akzeptiert
                 log(data.message, "info");
+                setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
                 
-                // JETZT starten wir die Überwachung
                 if(action === 'start') {
                     startMonitoring('running');
                 } else if (action === 'stop') {
@@ -425,7 +427,7 @@
 
             } else {
                 log(`Fehler: ${data.message}`, "error");
-                setStatusUI('offline', 'FEHLER');
+                setStatusUI('offline', ERROR_STATE);
             }
 
         } catch (err) {
@@ -435,7 +437,9 @@
 
     // === Auto Refresh (every 50 seconds) ===
     function startAutoRefresh() {
-        pollInterval = setInterval(() => checkStatus(true), 50000);
+        pollInterval = setInterval(() => {
+            checkStatus(true);
+        }, 50000); // Alle 50 Sekunden
     }
 
     // Start
