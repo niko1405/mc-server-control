@@ -135,6 +135,7 @@
         gap: 1rem;
     }
 
+    /* General Button Styles */
     button {
         flex: 1;
         padding: 15px;
@@ -156,24 +157,43 @@
     .btn-start { background: linear-gradient(135deg, #28a745, #1e7e34); box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
     .btn-stop { background: linear-gradient(135deg, #dc3545, #a71d2a); box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3); }
     
-    button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        filter: grayscale(100%);
+    /* Terminal Wrapper & Clear Button */
+    .terminal-wrapper {
+        position: relative;
+        background: #15151a;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .btn-clear {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: transparent;
+        box-shadow: none;
+        width: auto;
+        flex: none;
+        padding: 5px 10px;
+        font-size: 0.85rem;
+        color: #555;
+        z-index: 10;
+        border-radius: 6px;
+    }
+    .btn-clear:hover {
+        background: rgba(255,255,255,0.1);
+        color: #e0e0e0;
     }
 
     /* Terminal / Log */
     .terminal {
-        background: #15151a;
         padding: 1rem;
         height: 200px;
         overflow-y: auto;
         font-family: 'Consolas', 'Monaco', monospace;
         font-size: 0.85rem;
-        border-top: 1px solid rgba(255,255,255,0.1);
         display: flex;
         flex-direction: column;
         gap: 5px;
+        padding-top: 2rem; /* Platz für den Clear Button lassen */
     }
 
     .terminal::-webkit-scrollbar { width: 8px; }
@@ -245,8 +265,13 @@
         </div>
     </div>
 
-    <div class="terminal" id="terminal">
-        <div class="log-entry"><span class="log-time">System</span><span class="log-info">Dashboard initialisiert...</span></div>
+    <div class="terminal-wrapper">
+        <button class="btn-clear" onclick="clearLog()" title="Log leeren">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+        <div class="terminal" id="terminal">
+            <div class="log-entry"><span class="log-time">System</span><span class="log-info">Dashboard initialisiert...</span></div>
+        </div>
     </div>
 </div>
 
@@ -266,9 +291,9 @@
     const passwordInput = document.getElementById('passwordInput');
     const msgArea = document.getElementById('messageArea');
 
-    let pollInterval = null;     // Speichert den Timer für die normale Abfrage
-    let fastPollTimer = null;    // Speichert den Timer für die schnelle Abfrage
-    let currentStatus = "unknown"; // Speichert den aktuellen Status lokal
+    let pollInterval = null;     
+    let fastPollTimer = null;    
+    let currentStatus = "unknown"; 
 
     // === Log Logic ===
     function log(msg, type = 'info') {
@@ -286,6 +311,12 @@
         terminal.scrollTop = terminal.scrollHeight;
     }
 
+    // === Clear Log Function ===
+    function clearLog() {
+        terminal.innerHTML = '';
+        log("Log wurde geleert.", "info");
+    }
+
     // === UI Helper ===
     function setStatusUI(state, text) {
         statusBadge.className = 'status-indicator'; 
@@ -294,11 +325,11 @@
         if(state === 'running') {
             statusBadge.classList.add('status-running');
             statusIcon.classList.add('fas', 'fa-check-circle');
-            text = text || "ONLINE";
+            text = text || ONLINE_STATE;
         } else if(state === 'stopped') {
             statusBadge.classList.add('status-stopped');
             statusIcon.classList.add('fas', 'fa-stop-circle');
-            text = text || "OFFLINE";
+            text = text || OFFLINE_STATE;
         } else if(state === 'working') {
             statusBadge.classList.add('status-working');
             statusIcon.classList.add('fas', 'fa-sync-alt', 'fa-spin');
@@ -320,30 +351,29 @@
     }
 
     // === Status Check ===
-    async function checkStatus(isAuto = true) {
-        if(!isAuto) setStatusUI('working', LOADING_STATE);
+    async function checkStatus(isAuto = true, updateUI = true) {
+        if(!isAuto && updateUI) setStatusUI('working', LOADING_STATE);
 
         try {
             const res = await fetch(`${API_URL}?action=status`);
             if(!res.ok) throw new Error("Netzwerkfehler");
             const data = await res.json();
             
-            // Status speichern für Vergleich
             currentStatus = data.status;
 
-            if(data.status === "running") {
-                setStatusUI('running', ONLINE_STATE);
-                if(!isAuto) log(`Server ist ONLINE auf ${IP}!`, "success");
-            } else {
-                setStatusUI('stopped', OFFLINE_STATE);
-                if(!isAuto) log("Server ist OFFLINE.", "error");
+            if (updateUI) {
+                if(data.status === "running") {
+                    setStatusUI('running', ONLINE_STATE);
+                    if(!isAuto) log(`Server ist ONLINE auf ${IP}!`, "success");
+                } else {
+                    setStatusUI('stopped', OFFLINE_STATE);
+                    if(!isAuto) log("Server ist OFFLINE.", "error");
+                }
             }
-            
-            // Rückgabe für die "Smart Polling" Funktion
             return data.status;
 
         } catch (err) {
-            setStatusUI('offline', ERROR_STATE);
+            if(updateUI) setStatusUI('offline', ERROR_STATE);
             if(!isAuto) log("Fehler beim Status-Check: " + err.message, "error");
             return "error";
         }
@@ -357,23 +387,24 @@
         log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
 
         fastPollTimer = setInterval(async () => {
-            const status = await checkStatus(true); 
+            const status = await checkStatus(true, false); 
 
             if (status === targetState) {
-                clearInterval(fastPollTimer); // stop fast polling
+                clearInterval(fastPollTimer);
                 
                 if(targetState === 'running') {
+                    setStatusUI('running', ONLINE_STATE);
                     log(`Server ist jetzt ONLINE auf ${IP}!`, "success");
-                    log("Du kannst den Server nun joinen.", "info");
+                    log("Du kannst dem Server nun joinen.", "info");
                 } else {
+                    setStatusUI('stopped', OFFLINE_STATE);
                     log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); 
                 }
 
-                // start normal polling again
                 startAutoRefresh();
             } 
             
-        }, 5000); // refresh every 5 seconds
+        }, 5000); 
     }
 
     // === Action Trigger ===
@@ -387,6 +418,7 @@
         }
 
         log(`Sende Befehl: ${action.toUpperCase()}...`, "info");
+        setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
 
         try {
             const res = await fetch(API_URL, {
@@ -400,28 +432,27 @@
             if (res.status === 401) {
                 showErrorInput("Passwort falsch!");
                 log("Passwort falsch!", "error");
-                setStatusUI('offline', 'AUTH FEHLER');
+                checkStatus(true, true); 
                 return;
             }
 
             if (res.ok) {
                 if(data.status === 'already_running') {
                     log("Der Server läuft bereits.", "warn");
-                    log(`Joine jetzt mit der IP ${IP}!`, "success");
+                    setStatusUI('running', ONLINE_STATE);
                     return;
                 }
 
                 if(data.status === 'already_stopped') {
                     log("Der Server ist bereits gestoppt.", "warn");
-                    log("Du musst nichts weiter tun.", "info");
+                    setStatusUI('stopped', OFFLINE_STATE);
                     return;
                 }
 
-                // Befehl wurde von Azure akzeptiert
                 log(data.message, "info");
-                setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
                 
                 if(action === 'start') {
+                    log("Bitte habe einen Moment Geduld...", "info");
                     startMonitoring('running');
                 } else if (action === 'stop') {
                     startMonitoring('stopped');
@@ -434,18 +465,20 @@
 
         } catch (err) {
             log("Netzwerkfehler beim Senden: " + err.message, "error");
+            setStatusUI('offline', ERROR_STATE);
         }
     }
 
-    // === Auto Refresh (every 50 seconds) ===
+    // === Auto Refresh ===
     function startAutoRefresh() {
+        if(pollInterval) clearInterval(pollInterval);
+        
         pollInterval = setInterval(() => {
-            checkStatus(true);
-        }, 50000); // Alle 50 Sekunden
+            checkStatus(true, true);
+        }, 50000); 
     }
 
-    // Start
-    checkStatus(false);
+    checkStatus(false, true);
     startAutoRefresh();
 
 </script>
