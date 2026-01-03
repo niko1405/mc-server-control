@@ -569,22 +569,32 @@
 
     // === Player Check (via mcsrvstat.us API) ===
     async function updatePlayerInfo() {
+        const playerBox = document.getElementById('playerBox'); // Globale Referenz
         const countLabel = document.getElementById('playerCount');
         const listDiv = document.getElementById('playerList');
 
-        // Doppelte Sicherheit: Nur abfragen, wenn Status running ist
+        // 1. Wenn Server NICHT läuft -> Box weg
         if (currentStatus !== 'running') {
             togglePlayerBox(false);
             return;
         }
 
+        // 2. Server läuft laut Azure -> Box SOFORT anzeigen!
+        // Wir zeigen erstmal einen Lade-Status, damit man sieht, dass was passiert.
+        togglePlayerBox(true); 
+        
+        // Wenn wir noch keine alten Daten haben, zeigen wir "Lade..."
+        if (countLabel.textContent === "0 / 0") {
+             listDiv.innerHTML = '<span class="no-players"><i class="fas fa-sync fa-spin"></i> Frage Minecraft ab...</span>';
+        }
+
         try {
-            // Timestamp ?t=... verhindert Browser-Caching!
+            // Timestamp ?t=... verhindert Browser-Caching
             const res = await fetch(`https://api.mcsrvstat.us/3/${IP}?t=${Date.now()}`);
             const data = await res.json();
 
             if (data.online) {
-                togglePlayerBox(true); // Zeigen!
+                // === FALL A: Minecraft ist voll da ===
                 countLabel.textContent = `${data.players.online} / ${data.players.max}`;
                 listDiv.innerHTML = ''; 
                 
@@ -599,12 +609,15 @@
                     listDiv.innerHTML = '<span class="no-players">Niemand da... 🦗</span>';
                 }
             } else {
-                // Server läuft (VM an), aber Minecraft bootet noch
-                togglePlayerBox(false);
+                // === FALL B: VM ist an, aber Minecraft noch nicht bereit ===
+                // Wir verstecken die Box NICHT, sondern geben Feedback!
+                countLabel.textContent = "- / -";
+                listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-yellow)"><i class="fas fa-cog fa-spin"></i> Server fährt noch hoch...</span>';
             }
         } catch (e) {
             console.log("Fehler beim Spieler-Check:", e);
-            togglePlayerBox(false);
+            // Bei Fehler (API down) auch nicht verstecken, sondern Warnung
+            listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-red)">API Fehler</span>';
         }
     }
 
