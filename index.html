@@ -333,8 +333,10 @@
 
             if(data.status === "running") {
                 setStatusUI('running', ONLINE_STATE);
+                if(!isAuto) log(`Server ist ONLINE auf ${IP}!`, "success");
             } else {
                 setStatusUI('stopped', OFFLINE_STATE);
+                if(!isAuto) log("Server ist OFFLINE.", "error");
             }
             
             // Rückgabe für die "Smart Polling" Funktion
