@@ -584,11 +584,14 @@
         log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
 
         fastPollTimer = setInterval(async () => {
-            const status = await checkStatus(true, false); 
+            // WICHTIG: isAuto = false setzen!
+            // Damit umgehen wir die "isProcessingAction" Sperre in checkStatus.
+            // updateUI = false, damit es nicht flackert.
+            const status = await checkStatus(false, false); 
 
             if (status === targetState) {
                 clearInterval(fastPollTimer);
-                isProcessingAction = false; 
+                isProcessingAction = false; // JETZT erst die Sperre aufheben
 
                 if(targetState === 'running') {
                     setStatusUI('running', ONLINE_STATE);
@@ -597,11 +600,11 @@
                     updatePlayerInfo();
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
-                    log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); 
+                    log("Server ist jetzt OFFLINE.", "error"); 
                 }
                 startAutoRefresh();
             } 
-        }, 5000); 
+        }, 3000); // Alle 3 Sekunden prüfen
     }
 
     // === Action Trigger ===
