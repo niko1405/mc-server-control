@@ -415,9 +415,9 @@
     const API_URL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-vm-control";
     const IP = "4.219.14.199";
 
-    const ONLINE_STATE = "SERVER ONLINE";
-    const OFFLINE_STATE = "SERVER OFFLINE";
-    const LOADING_STATE = "Lade...";
+    const ONLINE_STATE = "SERVER ONLINE"; // Grün: VM an + Java an
+    const OFFLINE_STATE = "SERVER OFFLINE"; // Rot: VM aus
+    const VM_ONLY_STATE = "VM LÄUFT..."; // Gelb: VM an, aber Java antwortet (noch) nicht
     const ERROR_STATE = "FEHLER";
 
     // UI Elements
@@ -428,17 +428,18 @@
     const passwordInput = document.getElementById('passwordInput');
     const msgArea = document.getElementById('messageArea');
     const ipLabel = document.getElementById('ipAddress');
-    const playerBox = document.getElementById('playerBox'); // Globale Referenz
+    const playerBox = document.getElementById('playerBox');
+    const refreshBtnIcon = document.getElementById('refreshIcon');
 
     // Logic Variables
-    let pollInterval = null;     
-    let fastPollTimer = null;    
-    let currentStatus = "unknown"; 
+    let pollInterval = null;     // Das Haupt-Intervall (30s)
+    let fastPollTimer = null;    // Das schnelle Intervall beim Starten (3s)
+    let currentAzureStatus = "unknown"; 
     let isProcessingAction = false; 
 
     // Activity / Visibility Tracking
     let lastActivityTime = Date.now();
-    const IDLE_TIMEOUT = 5 * 60 * 1000; 
+    const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 Minuten
     let isPollingPaused = false;
 
     ipLabel.textContent = IP;
@@ -452,36 +453,39 @@
         });
     }
 
+    // === Visual Heartbeat ===
+    function spinRefreshIcon() {
+        refreshBtnIcon.classList.add('fa-spin');
+        setTimeout(() => refreshBtnIcon.classList.remove('fa-spin'), 1000);
+    }
+
     // === Manual Refresh ===
     function forceRefresh() {
         log("Manuelles Update angefordert...", "info");
-        const icon = document.getElementById('refreshIcon');
-        icon.classList.add('fa-spin');
-        
-        // Zwingt Check, auch wenn Pause oder Action läuft
-        checkStatus(false, true).then(() => {
-            setTimeout(() => icon.classList.remove('fa-spin'), 500);
-        });
+        spinRefreshIcon();
+        resetActivityTimer(); // Setzt Timeout zurück
+        checkStatus(false, true); // Erzwingt sofortigen Check
     }
 
     function resetActivityTimer() {
         lastActivityTime = Date.now();
         if (isPollingPaused) {
             isPollingPaused = false;
-            log("Aktivität erkannt. Status-Update fortgesetzt.", "info");
+            log("Aktivität erkannt. Auto-Update fortgesetzt.", "info");
+            setStatusUI('working', "Aktualisiere...");
             checkStatus(true, true); 
-            startAutoRefresh(); 
         }
     }
+    
     window.addEventListener('mousemove', resetActivityTimer);
     window.addEventListener('keydown', resetActivityTimer);
     window.addEventListener('click', resetActivityTimer);
 
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-            if (pollInterval) clearInterval(pollInterval);
-        } else {
+        if (!document.hidden) {
+            // Wenn Tab wieder sichtbar, sofort Timer resetten und Checken
             resetActivityTimer();
+            checkStatus(true, true);
         }
     });
 
@@ -518,34 +522,29 @@
         log("Log wurde geleert.", "info");
     }
 
-    // Hilfsfunktion für Player Box Sichtbarkeit
     function togglePlayerBox(show) {
-        if (show) {
-            playerBox.classList.remove('hidden');
-        } else {
-            playerBox.classList.add('hidden');
-        }
+        if (show) playerBox.classList.remove('hidden');
+        else playerBox.classList.add('hidden');
     }
 
     function setStatusUI(state, text) {
         statusBadge.className = 'status-indicator'; 
         statusIcon.className = '';
 
-        if(state === 'running') {
+        if(state === 'running') { // GRÜN (Alles OK)
             statusBadge.classList.add('status-running');
             statusIcon.classList.add('fas', 'fa-check-circle');
             text = text || ONLINE_STATE;
-            // Player Box wird in updatePlayerInfo() gesteuert
-        } else if(state === 'stopped') {
+        } else if(state === 'stopped') { // ROT (VM aus)
             statusBadge.classList.add('status-stopped');
             statusIcon.classList.add('fas', 'fa-stop-circle');
             text = text || OFFLINE_STATE;
-            togglePlayerBox(false); // Sofort verstecken
-        } else if(state === 'working') {
+            togglePlayerBox(false);
+        } else if(state === 'working') { // GELB (VM an, aber Java lädt/fehlt)
             statusBadge.classList.add('status-working');
             statusIcon.classList.add('fas', 'fa-sync-alt', 'fa-spin');
-            togglePlayerBox(false); // Sofort verstecken
-        } else if (state === 'sleep') {
+            togglePlayerBox(true); 
+        } else if (state === 'sleep') { // LILA (Pause)
             statusBadge.classList.add('status-sleep');
             statusIcon.classList.add('fas', 'fa-moon');
             text = "DASHBOARD PAUSIERT";
@@ -567,34 +566,24 @@
         }, 2000);
     }
 
-    // === Player Check (via mcsrvstat.us API) ===
+    // === Player & Service Check (Zweite Ebene der Wahrheit) ===
     async function updatePlayerInfo() {
-        const playerBox = document.getElementById('playerBox'); // Globale Referenz
         const countLabel = document.getElementById('playerCount');
         const listDiv = document.getElementById('playerList');
 
-        // 1. Wenn Server NICHT läuft -> Box weg
-        if (currentStatus !== 'running') {
-            togglePlayerBox(false);
-            return;
-        }
-
-        // 2. Server läuft laut Azure -> Box SOFORT anzeigen!
-        // Wir zeigen erstmal einen Lade-Status, damit man sieht, dass was passiert.
-        togglePlayerBox(true); 
-        
-        // Wenn wir noch keine alten Daten haben, zeigen wir "Lade..."
-        if (countLabel.textContent === "0 / 0") {
-             listDiv.innerHTML = '<span class="no-players"><i class="fas fa-sync fa-spin"></i> Frage Minecraft ab...</span>';
+        if (countLabel.textContent === "0 / 0" || countLabel.textContent === "- / -") {
+             listDiv.innerHTML = '<span class="no-players"><i class="fas fa-sync fa-spin"></i> Prüfe Minecraft...</span>';
         }
 
         try {
-            // Timestamp ?t=... verhindert Browser-Caching
+            // Timestamp verhindert Caching
             const res = await fetch(`https://api.mcsrvstat.us/3/${IP}?t=${Date.now()}`);
             const data = await res.json();
 
             if (data.online) {
-                // === FALL A: Minecraft ist voll da ===
+                // === ECHTER ONLINE STATUS ===
+                setStatusUI('running', ONLINE_STATE);
+                
                 countLabel.textContent = `${data.players.online} / ${data.players.max}`;
                 listDiv.innerHTML = ''; 
                 
@@ -608,39 +597,40 @@
                 } else {
                     listDiv.innerHTML = '<span class="no-players">Niemand da... 🦗</span>';
                 }
+                return true; 
             } else {
-                // === FALL B: VM ist an, aber Minecraft noch nicht bereit ===
-                // Wir verstecken die Box NICHT, sondern geben Feedback!
+                // === VM AN, ABER MINECRAFT AUS/BOOTET ===
+                setStatusUI('working', VM_ONLY_STATE);
                 countLabel.textContent = "- / -";
-                listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-yellow)"><i class="fas fa-cog fa-spin"></i> Server fährt noch hoch...</span>';
+                listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-yellow)"><i class="fas fa-cog fa-spin"></i> Server fährt hoch...</span>';
+                return false; 
             }
         } catch (e) {
             console.log("Fehler beim Spieler-Check:", e);
-            // Bei Fehler (API down) auch nicht verstecken, sondern Warnung
             listDiv.innerHTML = '<span class="no-players" style="color:var(--accent-red)">API Fehler</span>';
+            return false;
         }
     }
 
-    // === Status Check ===
+    // === Status Check (Erste Ebene der Wahrheit) ===
     async function checkStatus(isAuto = true, updateUI = true) {
-        if (isProcessingAction && isAuto) return currentStatus; 
+        if (isProcessingAction && isAuto) return currentAzureStatus; 
 
-        if(!isAuto && updateUI) setStatusUI('working', LOADING_STATE);
-
+        if (isAuto) spinRefreshIcon();
+        
         try {
             const res = await fetch(`${API_URL}?action=status`);
             if(!res.ok) throw new Error("Netzwerkfehler");
             const data = await res.json();
             
-            const hasChanged = currentStatus !== data.status && currentStatus !== "unknown";
+            const hasChanged = currentAzureStatus !== data.status && currentAzureStatus !== "unknown";
 
             if (updateUI && !isProcessingAction) {
                 if(data.status === "running") {
-                    setStatusUI('running', ONLINE_STATE);
-                    if(!isAuto || hasChanged) log(`Server ist ONLINE!`, "success");
+                    setStatusUI('working', "VM LÄUFT...");
+                    if(!isAuto || hasChanged) log(`VM ist aktiv. Prüfe Minecraft...`, "info");
                     
-                    // Hier IMMER updaten wenn running (für Auto-Refresh)
-                    updatePlayerInfo(); 
+                    await updatePlayerInfo(); 
                     
                 } else if (data.status === "starting") {
                     setStatusUI('working', "BOOTET...");
@@ -651,7 +641,7 @@
                     togglePlayerBox(false);
                 }
             }
-            currentStatus = data.status;
+            currentAzureStatus = data.status;
             return data.status;
 
         } catch (err) {
@@ -661,30 +651,29 @@
         }
     }
 
-    // === Monitoring nach Aktion ===
+    // === Monitoring nach Aktion (Start/Stop) ===
     function startMonitoring(targetState) {
-        if(pollInterval) clearInterval(pollInterval);
+        if(pollInterval) clearInterval(pollInterval); // Auto-Refresh stoppen während Monitoring
         if(fastPollTimer) clearInterval(fastPollTimer);
 
         log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
 
         fastPollTimer = setInterval(async () => {
-            // isAuto=false umgeht Sperre, updateUI=false verhindert Flackern
             const status = await checkStatus(false, false); 
-
+            
             if (status === targetState) {
                 clearInterval(fastPollTimer);
-                isProcessingAction = false; // Sperre aufheben
+                isProcessingAction = false; 
 
                 if(targetState === 'running') {
-                    setStatusUI('running', ONLINE_STATE);
-                    log(`Server ist jetzt ONLINE!`, "success");
+                    await updatePlayerInfo();
+                    log(`Startvorgang abgeschlossen.`, "success");
                     log("Joine unter: " + IP, "info");
-                    updatePlayerInfo(); // Sofort laden
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
                     log("Server ist jetzt AUS.", "error"); 
                 }
+                // Monitoring fertig -> Auto-Refresh wieder anwerfen
                 startAutoRefresh();
             } 
         }, 3000); 
@@ -697,18 +686,18 @@
         const password = passwordInput.value.trim();
         if (!password) { showErrorInput("Bitte Passwort eingeben!"); return; }
 
-        if (action === 'stop' && currentStatus === 'stopped') {
+        if (action === 'stop' && currentAzureStatus === 'stopped') {
             log("Der Server ist bereits gestoppt.", "warn");
             return; 
         }
-        if (action === 'start' && currentStatus === 'running') {
-            log("Der Server läuft bereits.", "warn");
-            return;
+        
+        if (action === 'start' && currentAzureStatus === 'running') {
+             log("VM läuft bereits. Prüfe Minecraft...", "warn");
+             checkStatus(false, true);
+             return;
         }
 
         isProcessingAction = true; 
-        
-        // Spieler Info sofort verstecken bei Stop
         if (action === 'stop') togglePlayerBox(false);
 
         if (action === 'stop') {
@@ -743,7 +732,6 @@
                     log(data.message, "warn");
                     return;
                 }
-
                 log(data.message, "success");
                 
                 if(action === 'start') {
@@ -765,12 +753,21 @@
         }
     }
 
-    // === Auto Refresh ===
+    // === AUTO REFRESH LOOP (setInterval) ===
+    // Das ist die robuste Methode. Sie läuft immer, egal was passiert.
     function startAutoRefresh() {
         if(pollInterval) clearInterval(pollInterval);
         
+        console.log("Starte Auto-Refresh (alle 30s)");
+
         pollInterval = setInterval(() => {
-            if (document.hidden) return;
+            console.log("Timer Tick: " + new Date().toLocaleTimeString()); // Debug Log
+
+            if (document.hidden) {
+                console.log("-> Tab hidden, skip fetch.");
+                return; 
+            }
+            
             if (Date.now() - lastActivityTime > IDLE_TIMEOUT) {
                 if(!isPollingPaused) {
                     isPollingPaused = true;
@@ -779,11 +776,14 @@
                 }
                 return;
             }
-            // Normaler Check (updated auch Player Info wenn running)
+            
+            // Fetch durchführen
             checkStatus(true, true);
-        }, 30000); 
+
+        }, 30000); // 30 Sekunden
     }
 
+    // Initialer Start
     checkStatus(false, true);
     startAutoRefresh();
 
