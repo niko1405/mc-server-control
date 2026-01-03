@@ -388,7 +388,7 @@
         }, 2000);
     }
 
-    // === Status Check ===
+// === Status Check ===
     async function checkStatus(isAuto = true, updateUI = true) {
         if(!isAuto && updateUI) setStatusUI('working', LOADING_STATE);
 
@@ -397,17 +397,31 @@
             if(!res.ok) throw new Error("Netzwerkfehler");
             const data = await res.json();
             
-            currentStatus = data.status;
+            // 1. Prüfen, ob sich der Status geändert hat
+            // (Vergleich: Alter Status vs. Neuer Status aus API)
+            const hasChanged = currentStatus !== data.status && currentStatus !== "unknown";
 
             if (updateUI) {
                 if(data.status === "running") {
                     setStatusUI('running', ONLINE_STATE);
-                    if(!isAuto) log(`Server ist ONLINE auf ${IP}!`, "success");
+                    
+                    // Loggen wenn: Manueller Aufruf ODER Statusänderung
+                    if(!isAuto || hasChanged) {
+                        log(`Server ist ONLINE auf ${IP}!`, "success");
+                    }
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
-                    if(!isAuto) log("Server ist OFFLINE.", "error");
+                    
+                    // Loggen wenn: Manueller Aufruf ODER Statusänderung
+                    if(!isAuto || hasChanged) {
+                        log("Server ist OFFLINE.", "error");
+                    }
                 }
             }
+            
+            // 2. Neuen Status global speichern (für den nächsten Vergleich)
+            currentStatus = data.status;
+
             return data.status;
 
         } catch (err) {
