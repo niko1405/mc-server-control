@@ -3,261 +3,408 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Minecraft Server Dashboard</title>
+<title>Minecraft Server Control</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+    :root {
+        --bg-color: #121212;
+        --card-bg: #1e1e24;
+        --text-main: #e0e0e0;
+        --accent-green: #00e676;
+        --accent-red: #ff5252;
+        --accent-yellow: #ffea00;
+        --accent-blue: #2979ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-        font-family: 'Segoe UI', sans-serif;
-        background: #1b1b2f;
-        color: #eee;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-color);
+        background-image: radial-gradient(circle at top, #2a2a35 0%, #121212 100%);
+        color: var(--text-main);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .dashboard-card {
+        background: var(--card-bg);
+        width: 100%;
+        max-width: 500px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
+        transition: transform 0.3s ease;
+    }
+
+    /* Header & Status Area */
+    .header {
         padding: 2rem;
+        text-align: center;
+        background: rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     h1 {
-        color: #ffcc00;
-        margin-bottom: 2rem;
-        text-align: center;
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #fff;
     }
 
-    .status-box {
-        border-radius: 12px;
-        border-style: dashed;
-        padding: 1.2rem 2rem;
-        font-size: 1.3rem;
-        display: flex;
+    .status-indicator {
+        display: inline-flex;
         align-items: center;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        min-width: 300px;
-        justify-content: center;
+        gap: 10px;
+        padding: 10px 25px;
+        border-radius: 50px;
         font-weight: bold;
-        box-shadow: 0 0 15px rgba(0,0,0,0.5);
-        transition: 0.3s;
+        font-size: 1.1rem;
+        transition: all 0.5s ease;
+        border: 2px solid transparent;
+        text-transform: uppercase;
     }
-    .running { background: #28a745; color: #fff; border-color: #28a745; }
-    .stopped { background: #dc3545; color: #fff; border-color: #dc3545; }
-    .starting, .stopping { background: #ffc107; color: #000; border-color: #ffc107; }
-    .loading { background: gray; color: #fff; border-color: gray; }
 
+    /* Status Colors */
+    .status-running { 
+        color: var(--accent-green); 
+        border-color: var(--accent-green);
+        background: rgba(0, 230, 118, 0.1);
+        box-shadow: 0 0 15px rgba(0, 230, 118, 0.2);
+        animation: pulse-green 2s infinite;
+    }
+    .status-stopped { 
+        color: var(--accent-red); 
+        border-color: var(--accent-red);
+        background: rgba(255, 82, 82, 0.1);
+    }
+    .status-working { 
+        color: var(--accent-yellow); 
+        border-color: var(--accent-yellow);
+        background: rgba(255, 234, 0, 0.1);
+        animation: pulse-yellow 1.5s infinite;
+    }
+    .status-offline { color: #777; border-color: #555; }
+
+    /* Controls Area */
     .controls {
+        padding: 2rem;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 2rem;
+        gap: 1.5rem;
     }
 
-    .buttons {
+    .input-group {
+        position: relative;
+        width: 100%;
+    }
+
+    input[type="password"] {
+        width: 100%;
+        padding: 12px 15px;
+        background: #2b2b36;
+        border: 1px solid #444;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 1rem;
+        text-align: center;
+        transition: 0.3s;
+        outline: none;
+    }
+
+    input[type="password"]:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 8px rgba(41, 121, 255, 0.3);
+    }
+
+    /* Shake Animation for Wrong Password */
+    .input-error {
+        border-color: var(--accent-red) !important;
+        animation: shake 0.4s ease-in-out;
+        color: var(--accent-red);
+    }
+
+    .btn-group {
         display: flex;
         gap: 1rem;
     }
 
     button {
-        background: #007bff;
-        color: #fff;
+        flex: 1;
+        padding: 15px;
         border: none;
-        padding: 0.8rem 1.5rem;
-        font-size: 1rem;
-        border-radius: 8px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: 0.2s;
-    }
-
-    button:hover { background: #0056b3; }
-
-    input[type="password"] {
-        padding: 0.6rem 1rem;
-        font-size: 1rem;
-        border-radius: 8px;
-        border: none;
-        width: 200px;
-        text-align: center;
-    }
-
-    .log {
-        width: 100%;
-        max-width: 600px;
-        background: #2c2c3f;
-        padding: 1rem;
         border-radius: 12px;
-        min-height: 150px;
-        overflow-y: auto;
-        font-family: monospace;
-        font-size: 0.9rem;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-
-    /* Dialog-Fenster */
-    .dialog-backdrop {
-        position: fixed;
-        top:0; left:0;
-        width:100%; height:100%;
-        background: rgba(0,0,0,0.5);
-        display:none;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s, filter 0.2s;
+        display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 10;
+        gap: 8px;
+        color: #fff;
     }
-    .dialog {
-        background: #1b1b2f;
-        padding: 2rem;
-        border-radius: 12px;
+
+    button:active { transform: scale(0.96); }
+    
+    .btn-start { background: linear-gradient(135deg, #28a745, #1e7e34); box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
+    .btn-stop { background: linear-gradient(135deg, #dc3545, #a71d2a); box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3); }
+    
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        filter: grayscale(100%);
+    }
+
+    /* Terminal / Log */
+    .terminal {
+        background: #15151a;
+        padding: 1rem;
+        height: 200px;
+        overflow-y: auto;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.85rem;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .terminal::-webkit-scrollbar { width: 8px; }
+    .terminal::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+    .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; display: flex; gap: 10px; }
+    .log-time { color: #666; min-width: 60px; }
+    
+    .log-info { color: #bbb; }
+    .log-success { color: var(--accent-green); }
+    .log-error { color: var(--accent-red); }
+    .log-warn { color: var(--accent-yellow); }
+
+    /* Animations */
+    @keyframes pulse-green {
+        0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    /* Helper message area */
+    .msg-area {
+        height: 20px;
         text-align: center;
-        box-shadow: 0 0 20px rgba(0,0,0,0.7);
-        max-width: 400px;
-        width: 90%;
+        font-size: 0.8rem;
+        margin-top: -10px;
+        color: var(--accent-red);
+        opacity: 0;
+        transition: opacity 0.3s;
     }
-    .dialog button {
-        margin-top: 1rem;
-        background: #ffcc00;
-        color: #000;
-        font-weight: bold;
-    }
+    .msg-area.visible { opacity: 1; }
 
 </style>
 </head>
 <body>
 
-<h1><i class="fas fa-cubes"></i> Minecraft Server Dashboard</h1>
-
-<div id="statusBox" class="status-box">
-    <i class="fas fa-circle-notch fa-spin" id="statusIcon"></i>
-    <span id="statusText">Lade Status...</span>
-</div>
-
-<div class="controls">
-    <input type="password" id="passwordInput" placeholder="Passwort eingeben" />
-    <div class="buttons">
-        <button onclick="confirmAction('start')"><i class="fas fa-play"></i> Start</button>
-        <button onclick="confirmAction('stop')"><i class="fas fa-stop"></i> Stop</button>
+<div class="dashboard-card">
+    
+    <div class="header">
+        <h1><i class="fas fa-cube"></i> MC Server Panel</h1>
+        
+        <div id="statusBadge" class="status-indicator status-offline">
+            <i id="statusIcon" class="fas fa-question-circle"></i>
+            <span id="statusText">Verbinde...</span>
+        </div>
     </div>
-</div>
 
-<div class="log" id="logBox">
-    -- Server-Log --
-</div>
+    <div class="controls">
+        <div class="input-group">
+            <input type="password" id="passwordInput" placeholder="Passwort eingeben..." autocomplete="off">
+        </div>
+        <div id="messageArea" class="msg-area">Passwort erforderlich!</div>
 
-<!-- Dialog -->
-<div id="dialogBackdrop" class="dialog-backdrop">
-    <div class="dialog">
-        <div id="dialogMessage"></div>
-        <button onclick="closeDialog()">OK</button>
+        <div class="btn-group">
+            <button class="btn-start" onclick="triggerAction('start')">
+                <i class="fas fa-power-off"></i> Starten
+            </button>
+            <button class="btn-stop" onclick="triggerAction('stop')">
+                <i class="fas fa-stop"></i> Stoppen
+            </button>
+        </div>
+    </div>
+
+    <div class="terminal" id="terminal">
+        <div class="log-entry"><span class="log-time">System</span><span class="log-info">Dashboard initialisiert...</span></div>
     </div>
 </div>
 
 <script>
-const BaseURL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-vm-control";
+    // URL DEINER AZURE FUNCTION HIER REIN
+    const API_URL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-vm-control";
 
-const statusBox = document.getElementById('statusBox');
-const statusText = document.getElementById('statusText');
-const statusIcon = document.getElementById('statusIcon');
-const logBox = document.getElementById('logBox');
-const dialogBackdrop = document.getElementById('dialogBackdrop');
-const dialogMessage = document.getElementById('dialogMessage');
-const passwordInput = document.getElementById('passwordInput');
+    const statusBadge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+    const statusIcon = document.getElementById('statusIcon');
+    const terminal = document.getElementById('terminal');
+    const passwordInput = document.getElementById('passwordInput');
+    const msgArea = document.getElementById('messageArea');
 
-// Status aktualisieren
-async function updateStatus(showLoading = true){
-    log(`${showLoading ? 'Lade' : 'Aktualisiere'} Server-Status...`);
+    // === Log Logic (Terminal Style) ===
+    function log(msg, type = 'info') {
+        const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+        
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        
+        // Icon basierend auf Typ
+        let iconHtml = '';
+        if(type === 'success') iconHtml = '<i class="fas fa-check"></i> ';
+        if(type === 'error') iconHtml = '<i class="fas fa-times"></i> ';
+        if(type === 'warn') iconHtml = '<i class="fas fa-cog fa-spin"></i> ';
 
-    if(showLoading){
-        statusText.textContent = "Lade Status...";
-        statusBox.className = "status-box loading";
-        statusIcon.className = "fas fa-circle-notch fa-spin";
+        entry.innerHTML = `
+            <span class="log-time">[${now}]</span>
+            <span class="log-${type}">${iconHtml}${msg}</span>
+        `;
+
+        terminal.appendChild(entry);
+        terminal.scrollTop = terminal.scrollHeight; // Auto-Scroll nach unten
     }
-    try {
-        const res = await fetch(`${BaseURL}?action=status`);
-        const data = await res.json();
-        let statusClass = "stopped";
-        let iconClass = "fas fa-times-circle";
-        if(data.status === "running") { statusClass="running"; iconClass="fas fa-check-circle"; }
-        else if(data.status === "stopped") { statusClass="stopped"; iconClass="fas fa-times-circle"; }
-        statusBox.className = `status-box ${statusClass}`;
-        statusText.textContent = data.message.toUpperCase();
-        statusIcon.className = iconClass;
-    } catch(err){
-        statusBox.className = "status-box stopped";
-        statusText.textContent = "FEHLER beim Status";
-        statusIcon.className = "fas fa-exclamation-triangle";
-        console.error(err);
-    }
-}
 
-// Action mit Passwort senden
-async function performAction(action){
-    const pwd = passwordInput.value.trim();
-    if(!pwd){
-        showDialog("Bitte Passwort eingeben!", () => {
-            closeDialog();
+    // === UI Helper ===
+    function setStatusUI(state, text) {
+        statusBadge.className = 'status-indicator'; // Reset
+        statusIcon.className = '';
+
+        if(state === 'running') {
+            statusBadge.classList.add('status-running');
+            statusIcon.classList.add('fas', 'fa-check-circle');
+            text = text || "ONLINE";
+        } else if(state === 'stopped') {
+            statusBadge.classList.add('status-stopped');
+            statusIcon.classList.add('fas', 'fa-stop-circle');
+            text = text || "OFFLINE";
+        } else if(state === 'working') {
+            statusBadge.classList.add('status-working');
+            statusIcon.classList.add('fas', 'fa-sync-alt', 'fa-spin');
+        } else {
+            statusBadge.classList.add('status-offline');
+            statusIcon.classList.add('fas', 'fa-question-circle');
+        }
+        statusText.textContent = text;
+    }
+
+    function showErrorInput(msg) {
+        passwordInput.classList.add('input-error');
+        msgArea.textContent = msg;
+        msgArea.classList.add('visible');
+        
+        setTimeout(() => {
+            passwordInput.classList.remove('input-error');
+            msgArea.classList.remove('visible');
+        }, 2000);
+    }
+
+    // === API Calls ===
+
+    async function checkStatus(isAuto = true) {
+        if(!isAuto) log("Frage Status ab...", "info");
+        
+        try {
+            // Nur beim ersten Laden oder manuellem Refresh "Laden" anzeigen
+            // Bei Auto-Refresh im Hintergrund lassen wir die UI ruhig
+            if(!isAuto) setStatusUI('working', 'Lade...');
+
+            const res = await fetch(`${API_URL}?action=status`);
+            if(!res.ok) throw new Error("Netzwerkfehler");
+            
+            const data = await res.json();
+            
+            if(data.status === "running") {
+                setStatusUI('running', 'SERVER LÄUFT');
+            } else {
+                setStatusUI('stopped', 'SERVER GESTOPPT');
+            }
+            
+            if(!isAuto) log("Status erfolgreich aktualisiert.", "success");
+
+        } catch (err) {
+            setStatusUI('offline', 'VERBINDUNGSFEHLER');
+            if(!isAuto) log("Fehler beim Status-Check: " + err.message, "error");
+        }
+    }
+
+    async function triggerAction(action) {
+        const password = passwordInput.value.trim();
+
+        // 1. Validierung: Passwort fehlt?
+        if (!password) {
+            showErrorInput("Bitte Passwort eingeben!");
+            log("Aktion abgebrochen: Kein Passwort.", "error");
             passwordInput.focus();
-        });
-        return;
+            return;
+        }
+
+        // UI Feedback: Es geht los
+        log(`Sende Befehl: ${action.toUpperCase()}...`, "warn");
+        setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
+
+        try {
+            const res = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: action, password: password })
+            });
+
+            const data = await res.json();
+
+            // 2. Validierung: Falsches Passwort (401)
+            if (res.status === 401) {
+                showErrorInput("Passwort falsch!");
+                log("Zugriff verweigert: Passwort falsch.", "error");
+                setStatusUI('offline', 'AUTH FEHLER'); // Oder alten Status behalten
+                return;
+            }
+
+            // Erfolg oder anderer Fehler
+            if (res.ok) {
+                log(data.message, "success");
+                
+                // Wenn erfolgreich, Passwortfeld leeren für Sicherheit (Optional)
+                // passwordInput.value = ""; 
+                
+                // Kurze Wartezeit, dann Status prüfen
+                setTimeout(() => checkStatus(false), 2000);
+
+            } else {
+                log(`Fehler: ${data.message}`, "error");
+                setStatusUI('offline', 'FEHLER');
+            }
+
+        } catch (err) {
+            log("Kritischer Fehler: " + err.message, "error");
+            setStatusUI('offline', 'NETZWERK FEHLER');
+        }
     }
 
-    const body = { action: action, password: pwd };
-    log(`Sende Aktion: ${action}...`);
-    try {
-        const res = await fetch(BaseURL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        log(data.message);
-        showDialog(data.message, () => {
-            closeDialog();
-        });
-        updateStatus(false);
-    } catch(err){
-        log("Fehler beim Senden der Aktion");
-        showDialog("Fehler beim Senden der Aktion", () => {
-            closeDialog();
-        });
-        console.error(err);
-    }
-}
+    // Initiale Statusabfrage
+    checkStatus(false);
 
-// Dialog-Fenster
-function showDialog(msg, action = () => {}){
-    dialogMessage.textContent = msg;
-    dialogBackdrop.style.display = "flex";
-    const btn = dialogBackdrop.querySelector('button');
-    btn.onclick = action;
-}
+    // Auto-Refresh alle 30 Sekunden
+    setInterval(() => checkStatus(true), 30000);
 
-function closeDialog(){
-    dialogBackdrop.style.display = "none";
-}
-
-// Confirmation Dialog vor Start/Stop
-function confirmAction(action){
-    showDialog(`Willst du wirklich '${action.toUpperCase()}' ausführen?`, () => {
-        closeDialog();
-        performAction(action);
-    });
-}
-
-// Log schreiben
-function log(msg){
-    const now = new Date().toLocaleTimeString();
-    logBox.textContent += `[${now}] ${msg}\n`;
-    logBox.scrollTop = logBox.scrollHeight;
-}
-
-// Status beim Laden
-updateStatus();
-
-// Optional: leichtes Polling alle 60 Sekunden
-setInterval(() => {
-    updateStatus(false)
-}, 60000);
 </script>
 
 </body>
