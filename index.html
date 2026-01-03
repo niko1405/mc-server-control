@@ -365,20 +365,21 @@
     const msgArea = document.getElementById('messageArea');
     const ipLabel = document.getElementById('ipAddress');
 
-    // Polling Variables
+    // Logic Variables
     let pollInterval = null;     
     let fastPollTimer = null;    
     let currentStatus = "unknown"; 
     
+    // NEU: Verhindert Status-Updates während einer Aktion
+    let isProcessingAction = false;
+
     // Activity / Visibility Tracking
     let lastActivityTime = Date.now();
-    const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 Minuten Inaktivität = Sleep
+    const IDLE_TIMEOUT = 5 * 60 * 1000; 
     let isPollingPaused = false;
 
-    // Set IP on Load
     ipLabel.textContent = IP;
 
-    // === Copy IP Function ===
     function copyIp() {
         navigator.clipboard.writeText(IP).then(() => {
             log("IP Adresse kopiert!", "success");
@@ -388,36 +389,27 @@
         });
     }
 
-    // === Smart Polling Logic (Visibility & Idle Check) ===
-    
-    // 1. Check Idle Time (Mouse move or Keypress resets timer)
     function resetActivityTimer() {
         lastActivityTime = Date.now();
         if (isPollingPaused) {
             isPollingPaused = false;
             log("Aktivität erkannt. Status-Update fortgesetzt.", "info");
-            checkStatus(true, true); // Sofort update
-            startAutoRefresh(); // Interval neu starten
+            checkStatus(true, true); 
+            startAutoRefresh(); 
         }
     }
     window.addEventListener('mousemove', resetActivityTimer);
     window.addEventListener('keydown', resetActivityTimer);
     window.addEventListener('click', resetActivityTimer);
 
-    // 2. Check Tab Visibility (Stop polling if tab is hidden)
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
-            // Tab ist im Hintergrund -> Polling stoppen
             if (pollInterval) clearInterval(pollInterval);
-            console.log("Tab im Hintergrund. Polling pausiert.");
         } else {
-            // Tab wieder sichtbar -> Sofort checken und Timer starten
-            console.log("Tab aktiv. Polling läuft.");
             resetActivityTimer();
         }
     });
 
-    // === Password Toggle Function ===
     function togglePassword() {
         const icon = document.querySelector('.toggle-password');
         if (passwordInput.type === "password") {
@@ -431,7 +423,6 @@
         }
     }
 
-    // === Log Logic ===
     function log(msg, type = 'info') {
         const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
         const entry = document.createElement('div');
@@ -444,17 +435,14 @@
 
         entry.innerHTML = `<span class="log-time">[${now}]</span><span class="log-${type}">${iconHtml}${msg}</span>`;
         terminal.appendChild(entry);
-        terminal.scrollTop = terminal.scrollHeight; // Auto scroll to bottom
-        terminal.scrollLeft = 0; // Keep left aligned usually
+        terminal.scrollTop = terminal.scrollHeight; 
     }
 
-    // === Clear Log Function ===
     function clearLog() {
         terminal.innerHTML = '';
         log("Log wurde geleert.", "info");
     }
 
-    // === UI Helper ===
     function setStatusUI(state, text) {
         statusBadge.className = 'status-indicator'; 
         statusIcon.className = '';
@@ -493,6 +481,10 @@
 
     // === Status Check ===
     async function checkStatus(isAuto = true, updateUI = true) {
+        // WICHTIG: Wenn wir gerade Starten/Stoppen, keine Status-Updates anzeigen!
+        // Das verhindert das "Flackern" auf "ONLINE" während des Backups.
+        if (isProcessingAction && isAuto) return currentStatus;
+
         if(!isAuto && updateUI) setStatusUI('working', LOADING_STATE);
 
         try {
@@ -502,30 +494,26 @@
             
             const hasChanged = currentStatus !== data.status && currentStatus !== "unknown";
 
-            if (updateUI) {
+            // UI Update nur wenn wir keine Aktion ausführen
+            if (updateUI && !isProcessingAction) {
                 if(data.status === "running") {
                     setStatusUI('running', ONLINE_STATE);
-                    if(!isAuto || hasChanged) {
-                        log(`Server ist ONLINE auf ${IP}!`, "success");
-                    }
+                    if(!isAuto || hasChanged) log(`Server ist ONLINE!`, "success");
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
-                    if(!isAuto || hasChanged) {
-                        log("Server ist OFFLINE.", "error");
-                    }
+                    if(!isAuto || hasChanged) log("Server ist OFFLINE.", "error");
                 }
             }
             currentStatus = data.status;
             return data.status;
 
         } catch (err) {
-            if(updateUI) setStatusUI('offline', ERROR_STATE);
-            if(!isAuto) log("Fehler beim Status-Check: " + err.message, "error");
+            if(updateUI && !isProcessingAction) setStatusUI('offline', ERROR_STATE);
+            if(!isAuto) log("Status-Fehler: " + err.message, "error");
             return "error";
         }
     }
 
-    // === Smart Polling ===
     function startMonitoring(targetState) {
         if(pollInterval) clearInterval(pollInterval);
         if(fastPollTimer) clearInterval(fastPollTimer);
@@ -533,10 +521,14 @@
         log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
 
         fastPollTimer = setInterval(async () => {
+            // Beim Monitoring erlauben wir Updates wieder, aber nur im Hintergrund
+            // Wir setzen isProcessingAction am Ende der Action auf false
             const status = await checkStatus(true, false); 
+
             if (status === targetState) {
                 clearInterval(fastPollTimer);
-                
+                isProcessingAction = false; // Sperre aufheben
+
                 if(targetState === 'running') {
                     setStatusUI('running', ONLINE_STATE);
                     log(`Server ist jetzt ONLINE!`, "success");
@@ -552,20 +544,30 @@
 
     // === Action Trigger ===
     async function triggerAction(action) {
-        // Reset Idle Timer on action
         resetActivityTimer(); 
 
         const password = passwordInput.value.trim();
         if (!password) {
             showErrorInput("Bitte Passwort eingeben!");
-            log("Kein Passwort eingegeben.", "error");
             return;
         }
 
-        // UI Feedback BEFORE Fetch
+        // --- FIX 2: Checken ob Aktion überhaupt nötig ist ---
+        if (action === 'stop' && currentStatus === 'stopped') {
+            log("Der Server ist bereits gestoppt.", "warn");
+            return; // Gar nicht erst an das Backend senden
+        }
+        if (action === 'start' && currentStatus === 'running') {
+            log("Der Server läuft bereits.", "warn");
+            return;
+        }
+
+        // --- Ab hier läuft die Aktion ---
+        isProcessingAction = true; // Sperrt Auto-Status-Updates
+
         if (action === 'stop') {
             log(`🛑 Sende Stopp-Signal...`, "warn");
-            log(`⏳ <b>BACKUP LÄUFT...</b> Bitte warten! (Dauert ca. 15-30s)`, "info");
+            log(`⏳ <b>BACKUP LÄUFT...</b> Bitte warten! (Dauert ca. 30-40s)`, "info");
             setStatusUI('working', 'BACKUP & SAVE...');
         } else {
             log(`🚀 Sende Start-Signal...`, "info");
@@ -581,6 +583,7 @@
             const data = await res.json();
 
             if (res.status === 401) {
+                isProcessingAction = false; // Sperre aufheben bei Fehler
                 showErrorInput("Passwort falsch!");
                 log("Passwort falsch!", "error");
                 checkStatus(true, true); 
@@ -588,50 +591,42 @@
             }
 
             if (res.ok) {
-                if(data.status === 'already_running') {
-                    log("Der Server läuft bereits.", "warn");
-                    log("Joine unter: " + IP, "info");
-                    setStatusUI('running', ONLINE_STATE);
-                    return;
-                }
-                if(data.status === 'already_stopped') {
-                    log("Der Server ist bereits gestoppt.", "warn");
-                    setStatusUI('stopped', OFFLINE_STATE);
+                // Falls Backend sagt "schon gestoppt/gestartet" (Race Condition)
+                if(data.status.includes('already')) {
+                    isProcessingAction = false;
+                    checkStatus(true, true);
+                    log(data.message, "warn");
                     return;
                 }
 
-                // Backend Success
+                // Erfolg!
                 log(data.message, "success");
                 
                 if(action === 'start') {
-                    log("Server fährt hoch.", "info");
-                    log("Bitte habe etwas Geduld...", "info");
+                    log("VM fährt hoch. Warte auf Ping...", "info");
                     startMonitoring('running');
                 } else if (action === 'stop') {
                     log("VM wird jetzt dealloziert.", "info");
-                    setTimeout(() => checkStatus(true, true), 1000);
-                    startMonitoring('stopped');
+                    // Kurz warten vor dem ersten Check
+                    setTimeout(() => startMonitoring('stopped'), 2000);
                 }
             } else {
+                isProcessingAction = false;
                 log(`Fehler: ${data.message}`, "error");
                 setStatusUI('offline', ERROR_STATE);
             }
         } catch (err) {
+            isProcessingAction = false;
             log("Netzwerkfehler (Timeout?): " + err.message, "error");
             checkStatus(true, true);
         }
     }
 
-    // === Auto Refresh with Idle Logic ===
     function startAutoRefresh() {
         if(pollInterval) clearInterval(pollInterval);
         
-        // Check every 50 seconds
         pollInterval = setInterval(() => {
-            // Check 1: Is tab hidden?
             if (document.hidden) return;
-
-            // Check 2: Is user idle for too long?
             if (Date.now() - lastActivityTime > IDLE_TIMEOUT) {
                 if(!isPollingPaused) {
                     isPollingPaused = true;
@@ -640,13 +635,10 @@
                 }
                 return;
             }
-
-            // All good -> Fetch
             checkStatus(true, true);
         }, 50000); 
     }
 
-    // Init
     checkStatus(false, true);
     startAutoRefresh();
 
