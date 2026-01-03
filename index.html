@@ -251,7 +251,6 @@
 </div>
 
 <script>
-    // URL DEINER AZURE FUNCTION HIER REIN
     const API_URL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-vm-control";
 
     const statusBadge = document.getElementById('statusBadge');
@@ -261,31 +260,29 @@
     const passwordInput = document.getElementById('passwordInput');
     const msgArea = document.getElementById('messageArea');
 
-    // === Log Logic (Terminal Style) ===
+    let pollInterval = null;     // Speichert den Timer für die normale Abfrage
+    let fastPollTimer = null;    // Speichert den Timer für die schnelle Abfrage
+    let currentStatus = "unknown"; // Speichert den aktuellen Status lokal
+
+    // === Log Logic ===
     function log(msg, type = 'info') {
         const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
-        
         const entry = document.createElement('div');
         entry.className = 'log-entry';
         
-        // Icon basierend auf Typ
         let iconHtml = '';
         if(type === 'success') iconHtml = '<i class="fas fa-check"></i> ';
         if(type === 'error') iconHtml = '<i class="fas fa-times"></i> ';
-        if(type === 'warn') iconHtml = '<i class="fas fa-cog fa-spin"></i> ';
+        if(type === 'warn') iconHtml = '<i class="fas fa-spinner fa-spin"></i> ';
 
-        entry.innerHTML = `
-            <span class="log-time">[${now}]</span>
-            <span class="log-${type}">${iconHtml}${msg}</span>
-        `;
-
+        entry.innerHTML = `<span class="log-time">[${now}]</span><span class="log-${type}">${iconHtml}${msg}</span>`;
         terminal.appendChild(entry);
-        terminal.scrollTop = terminal.scrollHeight; // Auto-Scroll nach unten
+        terminal.scrollTop = terminal.scrollHeight;
     }
 
     // === UI Helper ===
     function setStatusUI(state, text) {
-        statusBadge.className = 'status-indicator'; // Reset
+        statusBadge.className = 'status-indicator'; 
         statusIcon.className = '';
 
         if(state === 'running') {
@@ -310,56 +307,80 @@
         passwordInput.classList.add('input-error');
         msgArea.textContent = msg;
         msgArea.classList.add('visible');
-        
         setTimeout(() => {
             passwordInput.classList.remove('input-error');
             msgArea.classList.remove('visible');
         }, 2000);
     }
 
-    // === API Calls ===
-
+    // === Status Check ===
     async function checkStatus(isAuto = true) {
-        if(!isAuto) log("Frage Status ab...", "info");
-        
-        try {
-            // Nur beim ersten Laden oder manuellem Refresh "Laden" anzeigen
-            // Bei Auto-Refresh im Hintergrund lassen wir die UI ruhig
-            if(!isAuto) setStatusUI('working', 'Lade...');
+        if(!isAuto) setStatusUI('working', 'Lade...');
 
+        try {
             const res = await fetch(`${API_URL}?action=status`);
             if(!res.ok) throw new Error("Netzwerkfehler");
-            
             const data = await res.json();
             
+            // Status speichern für Vergleich
+            currentStatus = data.status;
+
             if(data.status === "running") {
                 setStatusUI('running', 'SERVER LÄUFT');
             } else {
                 setStatusUI('stopped', 'SERVER GESTOPPT');
             }
             
-            if(!isAuto) log("Status erfolgreich aktualisiert.", "success");
+            // Rückgabe für die "Smart Polling" Funktion
+            return data.status;
 
         } catch (err) {
             setStatusUI('offline', 'VERBINDUNGSFEHLER');
             if(!isAuto) log("Fehler beim Status-Check: " + err.message, "error");
+            return "error";
         }
     }
 
+    // === Smart Polling ===
+    function startMonitoring(targetState) {
+        // Stoppe den normalen langsamen Interval
+        if(pollInterval) clearInterval(pollInterval);
+        if(fastPollTimer) clearInterval(fastPollTimer);
+
+        log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
+
+        fastPollTimer = setInterval(async () => {
+            const status = await checkStatus(true); // true = leise Abfrage ohne Log-Spam
+
+            if (status === targetState) {
+                // ZIEL ERREICHT!
+                clearInterval(fastPollTimer); // Schnelles Fragen stoppen
+                
+                if(targetState === 'running') {
+                    log("Server ist jetzt ONLINE und bereit!", "success");
+                } else {
+                    log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); // Rot für Stop
+                }
+
+                // Normalen Rhythmus (30s) wieder starten
+                startAutoRefresh();
+            } 
+            // Falls status noch "starting" oder "stopping" ist (aus deinem PS Skript), warten wir weiter...
+        }, 5000); // Alle 5 Sekunden prüfen
+    }
+
+    // === Action Trigger ===
     async function triggerAction(action) {
         const password = passwordInput.value.trim();
 
-        // 1. Validierung: Passwort fehlt?
         if (!password) {
             showErrorInput("Bitte Passwort eingeben!");
-            log("Aktion abgebrochen: Kein Passwort.", "error");
-            passwordInput.focus();
+            log("Kein Passwort eingegeben.", "error");
             return;
         }
 
-        // UI Feedback: Es geht los
-        log(`Sende Befehl: ${action.toUpperCase()}...`, "warn");
         setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
+        log(`Sende Befehl: ${action.toUpperCase()}...`, "info");
 
         try {
             const res = await fetch(API_URL, {
@@ -370,23 +391,23 @@
 
             const data = await res.json();
 
-            // 2. Validierung: Falsches Passwort (401)
             if (res.status === 401) {
                 showErrorInput("Passwort falsch!");
-                log("Zugriff verweigert: Passwort falsch.", "error");
-                setStatusUI('offline', 'AUTH FEHLER'); // Oder alten Status behalten
+                log("Passwort falsch!", "error");
+                setStatusUI('offline', 'AUTH FEHLER');
                 return;
             }
 
-            // Erfolg oder anderer Fehler
             if (res.ok) {
-                log(data.message, "success");
+                // Befehl wurde von Azure akzeptiert
+                log(data.message, "info");
                 
-                // Wenn erfolgreich, Passwortfeld leeren für Sicherheit (Optional)
-                // passwordInput.value = ""; 
-                
-                // Kurze Wartezeit, dann Status prüfen
-                setTimeout(() => checkStatus(false), 2000);
+                // JETZT starten wir die Überwachung
+                if(action === 'start') {
+                    startMonitoring('running');
+                } else if (action === 'stop') {
+                    startMonitoring('stopped');
+                }
 
             } else {
                 log(`Fehler: ${data.message}`, "error");
@@ -394,16 +415,18 @@
             }
 
         } catch (err) {
-            log("Kritischer Fehler: " + err.message, "error");
-            setStatusUI('offline', 'NETZWERK FEHLER');
+            log("Netzwerkfehler beim Senden: " + err.message, "error");
         }
     }
 
-    // Initiale Statusabfrage
-    checkStatus(false);
+    // === Auto Refresh (every 50 seconds) ===
+    function startAutoRefresh() {
+        pollInterval = setInterval(() => checkStatus(true), 50000);
+    }
 
-    // Auto-Refresh alle 30 Sekunden
-    setInterval(() => checkStatus(true), 30000);
+    // Start
+    checkStatus(false);
+    startAutoRefresh();
 
 </script>
 
