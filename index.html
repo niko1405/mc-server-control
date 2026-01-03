@@ -428,7 +428,7 @@
 
     const ONLINE_STATE = "SERVER ONLINE"; 
     const OFFLINE_STATE = "SERVER OFFLINE";
-    const BOOTING_STATE = "JAVA STARTET...";
+    const BOOTING_STATE = "VM LÄUFT...";
     const ERROR_STATE = "FEHLER";
 
     // UI Elements
@@ -639,7 +639,7 @@
                 if(data.status === "running") {
                     // Backend sagt: Port 25565 ist offen!
                     setStatusUI('running');
-                    if(hasChanged) log("✅ Port offen! Minecraft bereit.", "success");
+                    if(hasChanged) log("✅ Minecraft Server bereit.", "success");
                     
                     // Spielerliste laden
                     await updatePlayerInfo(); 
@@ -647,7 +647,7 @@
                 } else if (data.status === "booting" || data.status === "starting") {
                     // Backend sagt: VM an, aber Port zu
                     setStatusUI('booting');
-                    if(hasChanged && isAuto) log("⏳ VM läuft, warte auf Java...", "warn");
+                    if(hasChanged && isAuto) log("⏳ VM läuft, warte auf MC-Server...", "warn");
                     // Player Box zeigen für Feedback ("Java startet...")
                     togglePlayerBox(true);
                     document.getElementById('playerList').innerHTML = '<span class="no-players" style="color:var(--accent-yellow)"><i class="fas fa-cog fa-spin"></i> Fahre hoch...</span>';
@@ -691,7 +691,7 @@
                     log(`👉 <b>Joine jetzt: ${IP}</b>`, "info");
                 } else {
                     setStatusUI('stopped');
-                    log("Server ist jetzt AUS.", "error"); 
+                    log("Server ist jetzt OFFLINE.", "error"); 
                 }
                 startAutoRefresh();
             } 
@@ -711,7 +711,7 @@
         }
         
         if (action === 'start' && currentAzureStatus === 'running') {
-             log("Server läuft bereits (Port offen).", "success");
+             log("Der Server läuft bereits.", "success");
              checkStatus(false, true);
              return;
         }
