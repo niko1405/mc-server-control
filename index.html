@@ -14,6 +14,7 @@
         --accent-red: #ff5252;
         --accent-yellow: #ffea00;
         --accent-blue: #2979ff;
+        --accent-purple: #7c4dff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,7 +45,7 @@
 
     /* Header & Status Area */
     .header {
-        padding: 2rem;
+        padding: 2rem 2rem 1rem 2rem;
         text-align: center;
         background: rgba(255,255,255,0.03);
         border-bottom: 1px solid rgba(255,255,255,0.05);
@@ -52,7 +53,7 @@
 
     h1 {
         font-size: 1.5rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         letter-spacing: 1px;
         text-transform: uppercase;
         color: #fff;
@@ -91,10 +92,46 @@
         animation: pulse-yellow 1.5s infinite;
     }
     .status-offline { color: #777; border-color: #555; }
+    .status-sleep { color: var(--accent-purple); border-color: var(--accent-purple); opacity: 0.7; }
+
+    /* Info Section (New) */
+    .server-info-box {
+        background: rgba(0,0,0,0.2);
+        margin: 1rem 2rem 0 2rem;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.05);
+        text-align: center;
+    }
+
+    .ip-display {
+        font-family: 'Consolas', monospace;
+        font-size: 1.1rem;
+        color: var(--accent-blue);
+        background: rgba(41, 121, 255, 0.1);
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: inline-block;
+        margin-bottom: 8px;
+        transition: background 0.2s;
+    }
+    .ip-display:hover { background: rgba(41, 121, 255, 0.2); }
+    .ip-display i { margin-left: 8px; font-size: 0.9rem; opacity: 0.7; }
+
+    .shutdown-warning {
+        font-size: 0.8rem;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .shutdown-warning i { color: var(--accent-yellow); }
 
     /* Controls Area */
     .controls {
-        padding: 2rem;
+        padding: 1.5rem 2rem;
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
@@ -105,10 +142,9 @@
         width: 100%;
     }
 
-    /* Input Styling angepasst (ID statt type selector), damit Style bleibt wenn type="text" */
     #passwordInput {
         width: 100%;
-        padding: 12px 45px 12px 15px; /* Rechts mehr Platz für das Icon */
+        padding: 12px 45px 12px 15px;
         background: #2b2b36;
         border: 1px solid #444;
         border-radius: 8px;
@@ -124,7 +160,6 @@
         box-shadow: 0 0 8px rgba(41, 121, 255, 0.3);
     }
 
-    /* Toggle Password Icon Styling */
     .toggle-password {
         position: absolute;
         right: 15px;
@@ -136,11 +171,8 @@
         transition: color 0.2s;
         z-index: 5;
     }
-    .toggle-password:hover {
-        color: #fff;
-    }
+    .toggle-password:hover { color: #fff; }
 
-    /* Shake Animation for Wrong Password */
     .input-error {
         border-color: var(--accent-red) !important;
         animation: shake 0.4s ease-in-out;
@@ -152,7 +184,6 @@
         gap: 1rem;
     }
 
-    /* General Button Styles */
     button {
         flex: 1;
         padding: 15px;
@@ -185,38 +216,44 @@
         position: absolute;
         top: 8px;
         right: 8px;
-        background: transparent;
-        box-shadow: none;
+        background: #2b2b36; /* Background added for better visibility over text */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         width: auto;
         flex: none;
         padding: 5px 10px;
         font-size: 0.85rem;
-        color: #555;
+        color: #aaa;
         z-index: 10;
         border-radius: 6px;
+        border: 1px solid #333;
     }
     .btn-clear:hover {
-        background: rgba(255,255,255,0.1);
-        color: #e0e0e0;
+        background: #333;
+        color: #fff;
     }
 
     /* Terminal / Log */
     .terminal {
         padding: 1rem;
         height: 200px;
+        /* Horizontal scrolling logic */
         overflow-y: auto;
+        overflow-x: auto; 
+        white-space: nowrap; /* Forces text to stay on one line */
+        
         font-family: 'Consolas', 'Monaco', monospace;
         font-size: 0.85rem;
         display: flex;
         flex-direction: column;
         gap: 5px;
-        padding-top: 2rem; /* Platz für den Clear Button lassen */
+        padding-top: 2.5rem; /* Extra space for Clear button */
     }
 
-    .terminal::-webkit-scrollbar { width: 8px; }
+    .terminal::-webkit-scrollbar { width: 8px; height: 8px; }
     .terminal::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    .terminal::-webkit-scrollbar-corner { background: transparent; }
 
-    .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; display: flex; gap: 10px; }
+    .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; display: flex; gap: 10px; width: max-content; }
     .log-time { color: #666; min-width: 60px; }
     
     .log-info { color: #bbb; }
@@ -230,6 +267,11 @@
         70% { box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
         100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
     }
+    @keyframes pulse-yellow {
+        0% { box-shadow: 0 0 0 0 rgba(255, 234, 0, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 234, 0, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 234, 0, 0); }
+    }
     
     @keyframes shake {
         0%, 100% { transform: translateX(0); }
@@ -239,7 +281,6 @@
 
     @keyframes fadeIn { to { opacity: 1; } }
 
-    /* Helper message area */
     .msg-area {
         height: 20px;
         text-align: center;
@@ -263,6 +304,16 @@
         <div id="statusBadge" class="status-indicator status-offline">
             <i id="statusIcon" class="fas fa-question-circle"></i>
             <span id="statusText">Verbinde...</span>
+        </div>
+    </div>
+
+    <div class="server-info-box">
+        <div class="ip-display" onclick="copyIp()" title="Klicken zum Kopieren">
+            <span id="ipAddress">Lade IP...</span> <i class="fas fa-copy"></i>
+        </div>
+        <div class="shutdown-warning">
+            <i class="fas fa-stopwatch"></i>
+            <span>Auto-Shutdown nach 10min Inaktivität</span>
         </div>
     </div>
 
@@ -292,9 +343,6 @@
             <div class="log-entry">
                 <span class="log-time">System</span><span class="log-info">Dashboard initialisiert...</span>
             </div>
-            <div class="log-entry">
-                <span class="log-time">System</span><span class="log-info">Verbinde mit Server...</span>
-            </div>
         </div>
     </div>
 </div>
@@ -308,16 +356,66 @@
     const LOADING_STATE = "Lade...";
     const ERROR_STATE = "FEHLER";
 
+    // UI Elements
     const statusBadge = document.getElementById('statusBadge');
     const statusText = document.getElementById('statusText');
     const statusIcon = document.getElementById('statusIcon');
     const terminal = document.getElementById('terminal');
     const passwordInput = document.getElementById('passwordInput');
     const msgArea = document.getElementById('messageArea');
+    const ipLabel = document.getElementById('ipAddress');
 
+    // Polling Variables
     let pollInterval = null;     
     let fastPollTimer = null;    
     let currentStatus = "unknown"; 
+    
+    // Activity / Visibility Tracking
+    let lastActivityTime = Date.now();
+    const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 Minuten Inaktivität = Sleep
+    let isPollingPaused = false;
+
+    // Set IP on Load
+    ipLabel.textContent = IP;
+
+    // === Copy IP Function ===
+    function copyIp() {
+        navigator.clipboard.writeText(IP).then(() => {
+            log("IP Adresse kopiert!", "success");
+            const original = ipLabel.textContent;
+            ipLabel.textContent = "Kopiert!";
+            setTimeout(() => ipLabel.textContent = original, 1000);
+        });
+    }
+
+    // === Smart Polling Logic (Visibility & Idle Check) ===
+    
+    // 1. Check Idle Time (Mouse move or Keypress resets timer)
+    function resetActivityTimer() {
+        lastActivityTime = Date.now();
+        if (isPollingPaused) {
+            isPollingPaused = false;
+            log("Aktivität erkannt. Status-Update fortgesetzt.", "info");
+            checkStatus(true, true); // Sofort update
+            startAutoRefresh(); // Interval neu starten
+        }
+    }
+    window.addEventListener('mousemove', resetActivityTimer);
+    window.addEventListener('keydown', resetActivityTimer);
+    window.addEventListener('click', resetActivityTimer);
+
+    // 2. Check Tab Visibility (Stop polling if tab is hidden)
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            // Tab ist im Hintergrund -> Polling stoppen
+            if (pollInterval) clearInterval(pollInterval);
+            console.log("Tab im Hintergrund. Polling pausiert.");
+        } else {
+            // Tab wieder sichtbar -> Sofort checken und Timer starten
+            console.log("Tab aktiv. Polling läuft.");
+            resetActivityTimer();
+        }
+    });
 
     // === Password Toggle Function ===
     function togglePassword() {
@@ -346,7 +444,8 @@
 
         entry.innerHTML = `<span class="log-time">[${now}]</span><span class="log-${type}">${iconHtml}${msg}</span>`;
         terminal.appendChild(entry);
-        terminal.scrollTop = terminal.scrollHeight;
+        terminal.scrollTop = terminal.scrollHeight; // Auto scroll to bottom
+        terminal.scrollLeft = 0; // Keep left aligned usually
     }
 
     // === Clear Log Function ===
@@ -371,6 +470,10 @@
         } else if(state === 'working') {
             statusBadge.classList.add('status-working');
             statusIcon.classList.add('fas', 'fa-sync-alt', 'fa-spin');
+        } else if (state === 'sleep') {
+            statusBadge.classList.add('status-sleep');
+            statusIcon.classList.add('fas', 'fa-moon');
+            text = "DASHBOARD PAUSIERT";
         } else {
             statusBadge.classList.add('status-offline');
             statusIcon.classList.add('fas', 'fa-question-circle');
@@ -388,7 +491,7 @@
         }, 2000);
     }
 
-// === Status Check ===
+    // === Status Check ===
     async function checkStatus(isAuto = true, updateUI = true) {
         if(!isAuto && updateUI) setStatusUI('working', LOADING_STATE);
 
@@ -397,31 +500,22 @@
             if(!res.ok) throw new Error("Netzwerkfehler");
             const data = await res.json();
             
-            // 1. Prüfen, ob sich der Status geändert hat
-            // (Vergleich: Alter Status vs. Neuer Status aus API)
             const hasChanged = currentStatus !== data.status && currentStatus !== "unknown";
 
             if (updateUI) {
                 if(data.status === "running") {
                     setStatusUI('running', ONLINE_STATE);
-                    
-                    // Loggen wenn: Manueller Aufruf ODER Statusänderung
                     if(!isAuto || hasChanged) {
                         log(`Server ist ONLINE auf ${IP}!`, "success");
                     }
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
-                    
-                    // Loggen wenn: Manueller Aufruf ODER Statusänderung
                     if(!isAuto || hasChanged) {
                         log("Server ist OFFLINE.", "error");
                     }
                 }
             }
-            
-            // 2. Neuen Status global speichern (für den nächsten Vergleich)
             currentStatus = data.status;
-
             return data.status;
 
         } catch (err) {
@@ -440,36 +534,43 @@
 
         fastPollTimer = setInterval(async () => {
             const status = await checkStatus(true, false); 
-
             if (status === targetState) {
                 clearInterval(fastPollTimer);
                 
                 if(targetState === 'running') {
                     setStatusUI('running', ONLINE_STATE);
-                    log(`Server ist jetzt ONLINE auf ${IP}!`, "success");
-                    log("Du kannst dem Server nun joinen.", "info");
+                    log(`Server ist jetzt ONLINE!`, "success");
+                    log("Joine unter: " + IP, "info");
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
                     log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); 
                 }
-
                 startAutoRefresh();
             } 
-            
         }, 5000); 
     }
 
     // === Action Trigger ===
     async function triggerAction(action) {
-        const password = passwordInput.value.trim();
+        // Reset Idle Timer on action
+        resetActivityTimer(); 
 
+        const password = passwordInput.value.trim();
         if (!password) {
             showErrorInput("Bitte Passwort eingeben!");
             log("Kein Passwort eingegeben.", "error");
             return;
         }
 
-        log(`Sende Befehl: ${action.toUpperCase()}...`, "info");
+        // UI Feedback BEFORE Fetch
+        if (action === 'stop') {
+            log(`🛑 Sende Stopp-Signal...`, "warn");
+            log(`⏳ <b>BACKUP LÄUFT...</b> Bitte warten! (Dauert ca. 15-30s)`, "info");
+            setStatusUI('working', 'BACKUP & SAVE...');
+        } else {
+            log(`🚀 Sende Start-Signal...`, "info");
+            setStatusUI('working', 'STARTET...');
+        }
 
         try {
             const res = await fetch(API_URL, {
@@ -477,7 +578,6 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: action, password: password })
             });
-
             const data = await res.json();
 
             if (res.status === 401) {
@@ -490,47 +590,63 @@
             if (res.ok) {
                 if(data.status === 'already_running') {
                     log("Der Server läuft bereits.", "warn");
-                    log("Joine dem Server auf " + IP, "info");
+                    log("Joine unter: " + IP, "info");
                     setStatusUI('running', ONLINE_STATE);
                     return;
                 }
-
                 if(data.status === 'already_stopped') {
                     log("Der Server ist bereits gestoppt.", "warn");
                     setStatusUI('stopped', OFFLINE_STATE);
                     return;
                 }
 
-                setStatusUI('working', action === 'start' ? 'STARTET...' : 'STOPPT...');
-                log(data.message, "info");
+                // Backend Success
+                log(data.message, "success");
                 
                 if(action === 'start') {
-                    log("Bitte habe einen Moment Geduld...", "info");
+                    log("Server fährt hoch.", "info");
+                    log("Bitte habe etwas Geduld...", "info");
                     startMonitoring('running');
                 } else if (action === 'stop') {
+                    log("VM wird jetzt dealloziert.", "info");
+                    setTimeout(() => checkStatus(true, true), 1000);
                     startMonitoring('stopped');
                 }
-
             } else {
                 log(`Fehler: ${data.message}`, "error");
                 setStatusUI('offline', ERROR_STATE);
             }
-
         } catch (err) {
-            log("Netzwerkfehler beim Senden: " + err.message, "error");
-            setStatusUI('offline', ERROR_STATE);
+            log("Netzwerkfehler (Timeout?): " + err.message, "error");
+            checkStatus(true, true);
         }
     }
 
-    // === Auto Refresh ===
+    // === Auto Refresh with Idle Logic ===
     function startAutoRefresh() {
         if(pollInterval) clearInterval(pollInterval);
         
+        // Check every 50 seconds
         pollInterval = setInterval(() => {
+            // Check 1: Is tab hidden?
+            if (document.hidden) return;
+
+            // Check 2: Is user idle for too long?
+            if (Date.now() - lastActivityTime > IDLE_TIMEOUT) {
+                if(!isPollingPaused) {
+                    isPollingPaused = true;
+                    log("Inaktivität erkannt. Auto-Refresh pausiert.", "warn");
+                    setStatusUI('sleep');
+                }
+                return;
+            }
+
+            // All good -> Fetch
             checkStatus(true, true);
         }, 50000); 
     }
 
+    // Init
     checkStatus(false, true);
     startAutoRefresh();
 
