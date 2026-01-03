@@ -43,7 +43,6 @@
         transition: transform 0.3s ease;
     }
 
-    /* Header & Status Area */
     .header {
         padding: 2rem 2rem 1rem 2rem;
         text-align: center;
@@ -72,7 +71,6 @@
         text-transform: uppercase;
     }
 
-    /* Status Colors */
     .status-running { 
         color: var(--accent-green); 
         border-color: var(--accent-green);
@@ -94,7 +92,7 @@
     .status-offline { color: #777; border-color: #555; }
     .status-sleep { color: var(--accent-purple); border-color: var(--accent-purple); opacity: 0.7; }
 
-    /* Info Section (New) */
+    /* Info Section */
     .server-info-box {
         background: rgba(0,0,0,0.2);
         margin: 1rem 2rem 0 2rem;
@@ -129,7 +127,48 @@
     }
     .shutdown-warning i { color: var(--accent-yellow); }
 
-    /* Controls Area */
+    /* Player Box Styling */
+    .player-box {
+        background: rgba(0,0,0,0.2);
+        margin: 10px 2rem 0 2rem;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.05);
+        text-align: center;
+        transition: opacity 0.5s;
+    }
+    .player-box.hidden { display: none; }
+
+    .player-header {
+        font-weight: bold;
+        color: var(--accent-green);
+        margin-bottom: 8px;
+        font-size: 1rem;
+    }
+
+    .player-list {
+        font-size: 0.9rem;
+        color: #bbb;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .player-badge {
+        background: rgba(255,255,255,0.1);
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .player-badge img { width: 16px; height: 16px; border-radius: 2px; }
+
+    .no-players { font-style: italic; opacity: 0.5; }
+
+    /* Controls */
     .controls {
         padding: 1.5rem 2rem;
         display: flex;
@@ -137,10 +176,7 @@
         gap: 1.5rem;
     }
 
-    .input-group {
-        position: relative;
-        width: 100%;
-    }
+    .input-group { position: relative; width: 100%; }
 
     #passwordInput {
         width: 100%;
@@ -168,7 +204,6 @@
         cursor: pointer;
         color: #888;
         font-size: 1rem;
-        transition: color 0.2s;
         z-index: 5;
     }
     .toggle-password:hover { color: #fff; }
@@ -179,10 +214,7 @@
         color: var(--accent-red);
     }
 
-    .btn-group {
-        display: flex;
-        gap: 1rem;
-    }
+    .btn-group { display: flex; gap: 1rem; }
 
     button {
         flex: 1;
@@ -192,7 +224,7 @@
         font-size: 1rem;
         font-weight: bold;
         cursor: pointer;
-        transition: transform 0.2s, filter 0.2s;
+        transition: transform 0.2s;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -205,7 +237,6 @@
     .btn-start { background: linear-gradient(135deg, #28a745, #1e7e34); box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
     .btn-stop { background: linear-gradient(135deg, #dc3545, #a71d2a); box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3); }
     
-    /* Terminal Wrapper & Clear Button */
     .terminal-wrapper {
         position: relative;
         background: #15151a;
@@ -214,44 +245,32 @@
 
     .btn-clear {
         position: absolute;
-        top: 8px;
-        right: 8px;
-        background: #2b2b36; /* Background added for better visibility over text */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        width: auto;
-        flex: none;
+        top: 8px; right: 8px;
+        background: #2b2b36;
         padding: 5px 10px;
         font-size: 0.85rem;
         color: #aaa;
-        z-index: 10;
         border-radius: 6px;
         border: 1px solid #333;
     }
-    .btn-clear:hover {
-        background: #333;
-        color: #fff;
-    }
+    .btn-clear:hover { background: #333; color: #fff; }
 
-    /* Terminal / Log */
     .terminal {
         padding: 1rem;
         height: 200px;
-        /* Horizontal scrolling logic */
         overflow-y: auto;
         overflow-x: auto; 
-        white-space: nowrap; /* Forces text to stay on one line */
-        
+        white-space: nowrap;
         font-family: 'Consolas', 'Monaco', monospace;
         font-size: 0.85rem;
         display: flex;
         flex-direction: column;
         gap: 5px;
-        padding-top: 2.5rem; /* Extra space for Clear button */
+        padding-top: 2.5rem;
     }
 
     .terminal::-webkit-scrollbar { width: 8px; height: 8px; }
     .terminal::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-    .terminal::-webkit-scrollbar-corner { background: transparent; }
 
     .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; display: flex; gap: 10px; width: max-content; }
     .log-time { color: #666; min-width: 60px; }
@@ -261,7 +280,6 @@
     .log-error { color: var(--accent-red); }
     .log-warn { color: var(--accent-yellow); }
 
-    /* Animations */
     @keyframes pulse-green {
         0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
         70% { box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
@@ -272,13 +290,11 @@
         70% { box-shadow: 0 0 0 10px rgba(255, 234, 0, 0); }
         100% { box-shadow: 0 0 0 0 rgba(255, 234, 0, 0); }
     }
-    
     @keyframes shake {
         0%, 100% { transform: translateX(0); }
         25% { transform: translateX(-5px); }
         75% { transform: translateX(5px); }
     }
-
     @keyframes fadeIn { to { opacity: 1; } }
 
     .msg-area {
@@ -314,6 +330,15 @@
         <div class="shutdown-warning">
             <i class="fas fa-stopwatch"></i>
             <span>Auto-Shutdown nach 10min Inaktivität</span>
+        </div>
+    </div>
+
+    <div id="playerBox" class="player-box hidden">
+        <div class="player-header">
+            <i class="fas fa-users"></i> <span id="playerCount">0 / 0</span> Spieler online
+        </div>
+        <div id="playerList" class="player-list">
+            <span class="no-players">Niemand da... 🦗</span>
         </div>
     </div>
 
@@ -369,9 +394,7 @@
     let pollInterval = null;     
     let fastPollTimer = null;    
     let currentStatus = "unknown"; 
-    
-    // NEU: Verhindert Status-Updates während einer Aktion
-    let isProcessingAction = false;
+    let isProcessingAction = false; // Blockiert Polling während Aktionen
 
     // Activity / Visibility Tracking
     let lastActivityTime = Date.now();
@@ -479,11 +502,48 @@
         }, 2000);
     }
 
+    // === Player Check (via mcsrvstat.us API) ===
+    async function updatePlayerInfo() {
+        const playerBox = document.getElementById('playerBox');
+        const countLabel = document.getElementById('playerCount');
+        const listDiv = document.getElementById('playerList');
+
+        // Nur abfragen, wenn der Server als "running" markiert ist
+        if (currentStatus !== 'running') {
+            playerBox.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const res = await fetch(`https://api.mcsrvstat.us/3/${IP}`);
+            const data = await res.json();
+
+            if (data.online) {
+                playerBox.classList.remove('hidden');
+                countLabel.textContent = `${data.players.online} / ${data.players.max}`;
+                listDiv.innerHTML = ''; 
+                
+                if (data.players.online > 0 && data.players.list) {
+                    data.players.list.forEach(player => {
+                        const badge = document.createElement('span');
+                        badge.className = 'player-badge';
+                        badge.innerHTML = `<img src="https://minotar.net/avatar/${player.name}/20" alt=""> ${player.name}`;
+                        listDiv.appendChild(badge);
+                    });
+                } else {
+                    listDiv.innerHTML = '<span class="no-players">Niemand da... 🦗</span>';
+                }
+            } else {
+                playerBox.classList.add('hidden');
+            }
+        } catch (e) {
+            console.log("Fehler beim Spieler-Check:", e);
+        }
+    }
+
     // === Status Check ===
     async function checkStatus(isAuto = true, updateUI = true) {
-        // WICHTIG: Wenn wir gerade Starten/Stoppen, keine Status-Updates anzeigen!
-        // Das verhindert das "Flackern" auf "ONLINE" während des Backups.
-        if (isProcessingAction && isAuto) return currentStatus;
+        if (isProcessingAction && isAuto) return currentStatus; // Block polling during actions
 
         if(!isAuto && updateUI) setStatusUI('working', LOADING_STATE);
 
@@ -494,14 +554,17 @@
             
             const hasChanged = currentStatus !== data.status && currentStatus !== "unknown";
 
-            // UI Update nur wenn wir keine Aktion ausführen
             if (updateUI && !isProcessingAction) {
                 if(data.status === "running") {
                     setStatusUI('running', ONLINE_STATE);
                     if(!isAuto || hasChanged) log(`Server ist ONLINE!`, "success");
+                    updatePlayerInfo(); // Spieler updaten!
+                } else if (data.status === "starting") {
+                    setStatusUI('working', "BOOTET...");
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
                     if(!isAuto || hasChanged) log("Server ist OFFLINE.", "error");
+                    document.getElementById('playerBox').classList.add('hidden');
                 }
             }
             currentStatus = data.status;
@@ -521,18 +584,17 @@
         log(`Warte auf Status: ${targetState.toUpperCase()}...`, "warn");
 
         fastPollTimer = setInterval(async () => {
-            // Beim Monitoring erlauben wir Updates wieder, aber nur im Hintergrund
-            // Wir setzen isProcessingAction am Ende der Action auf false
             const status = await checkStatus(true, false); 
 
             if (status === targetState) {
                 clearInterval(fastPollTimer);
-                isProcessingAction = false; // Sperre aufheben
+                isProcessingAction = false; 
 
                 if(targetState === 'running') {
                     setStatusUI('running', ONLINE_STATE);
                     log(`Server ist jetzt ONLINE!`, "success");
                     log("Joine unter: " + IP, "info");
+                    updatePlayerInfo();
                 } else {
                     setStatusUI('stopped', OFFLINE_STATE);
                     log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); 
@@ -547,27 +609,22 @@
         resetActivityTimer(); 
 
         const password = passwordInput.value.trim();
-        if (!password) {
-            showErrorInput("Bitte Passwort eingeben!");
-            return;
-        }
+        if (!password) { showErrorInput("Bitte Passwort eingeben!"); return; }
 
-        // --- FIX 2: Checken ob Aktion überhaupt nötig ist ---
         if (action === 'stop' && currentStatus === 'stopped') {
             log("Der Server ist bereits gestoppt.", "warn");
-            return; // Gar nicht erst an das Backend senden
+            return; 
         }
         if (action === 'start' && currentStatus === 'running') {
             log("Der Server läuft bereits.", "warn");
             return;
         }
 
-        // --- Ab hier läuft die Aktion ---
-        isProcessingAction = true; // Sperrt Auto-Status-Updates
+        isProcessingAction = true; 
 
         if (action === 'stop') {
             log(`🛑 Sende Stopp-Signal...`, "warn");
-            log(`⏳ <b>BACKUP LÄUFT...</b> Bitte warten! (Dauert ca. 30-40s)`, "info");
+            log(`⏳ <b>BACKUP LÄUFT...</b> Bitte warten! (Dauert ca. 70s)`, "info");
             setStatusUI('working', 'BACKUP & SAVE...');
         } else {
             log(`🚀 Sende Start-Signal...`, "info");
@@ -583,7 +640,7 @@
             const data = await res.json();
 
             if (res.status === 401) {
-                isProcessingAction = false; // Sperre aufheben bei Fehler
+                isProcessingAction = false;
                 showErrorInput("Passwort falsch!");
                 log("Passwort falsch!", "error");
                 checkStatus(true, true); 
@@ -591,7 +648,6 @@
             }
 
             if (res.ok) {
-                // Falls Backend sagt "schon gestoppt/gestartet" (Race Condition)
                 if(data.status.includes('already')) {
                     isProcessingAction = false;
                     checkStatus(true, true);
@@ -599,7 +655,6 @@
                     return;
                 }
 
-                // Erfolg!
                 log(data.message, "success");
                 
                 if(action === 'start') {
@@ -607,7 +662,6 @@
                     startMonitoring('running');
                 } else if (action === 'stop') {
                     log("VM wird jetzt dealloziert.", "info");
-                    // Kurz warten vor dem ersten Check
                     setTimeout(() => startMonitoring('stopped'), 2000);
                 }
             } else {
@@ -636,7 +690,7 @@
                 return;
             }
             checkStatus(true, true);
-        }, 50000); 
+        }, 30000); 
     }
 
     checkStatus(false, true);
