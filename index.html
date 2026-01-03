@@ -252,6 +252,7 @@
 
 <script>
     const API_URL = "https://mc-server-func-fsg8bvbfh2fyaec8.norwayeast-01.azurewebsites.net/api/mc-vm-control";
+    const IP = "4.219.14.199";
 
     const statusBadge = document.getElementById('statusBadge');
     const statusText = document.getElementById('statusText');
@@ -273,7 +274,7 @@
         let iconHtml = '';
         if(type === 'success') iconHtml = '<i class="fas fa-check"></i> ';
         if(type === 'error') iconHtml = '<i class="fas fa-times"></i> ';
-        if(type === 'warn') iconHtml = '<i class="fas fa-spinner fa-spin"></i> ';
+        if(type === 'warn') iconHtml = '<i class="fas fa-exclamation-triangle"></i> ';
 
         entry.innerHTML = `<span class="log-time">[${now}]</span><span class="log-${type}">${iconHtml}${msg}</span>`;
         terminal.appendChild(entry);
@@ -357,7 +358,8 @@
                 clearInterval(fastPollTimer); // Schnelles Fragen stoppen
                 
                 if(targetState === 'running') {
-                    log("Server ist jetzt ONLINE und bereit!", "success");
+                    log(`Server ist jetzt ONLINE auf ${IP}!`, "success");
+                    log("Du kannst den Server nun joinen.", "info");
                 } else {
                     log("Server wurde erfolgreich HERUNTERGEFAHREN.", "error"); // Rot für Stop
                 }
@@ -399,6 +401,18 @@
             }
 
             if (res.ok) {
+                if(data.status === 'already_running') {
+                    log("Der Server läuft bereits.", "warn");
+                    log(`Joine jetzt mit der IP ${IP}`, "success");
+                    return;
+                }
+
+                if(data.status === 'already_stopped') {
+                    log("Der Server ist bereits gestoppt.", "warn");
+                    log("Du musst nichts weiter tun.", "info");
+                    return;
+                }
+
                 // Befehl wurde von Azure akzeptiert
                 log(data.message, "info");
                 
