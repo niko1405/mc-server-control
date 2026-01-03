@@ -165,6 +165,8 @@ const passwordInput = document.getElementById('passwordInput');
 
 // Status aktualisieren
 async function updateStatus(showLoading = true){
+    log(`${showLoading ? 'Lade' : 'Aktualisiere'} Server-Status...`);
+
     if(showLoading){
         statusText.textContent = "Lade Status...";
         statusBox.className = "status-box loading";
@@ -192,7 +194,10 @@ async function updateStatus(showLoading = true){
 async function performAction(action){
     const pwd = passwordInput.value.trim();
     if(!pwd){
-        showDialog("Bitte Passwort eingeben!");
+        showDialog("Bitte Passwort eingeben!", () => {
+            closeDialog();
+            passwordInput.focus();
+        });
         return;
     }
 
@@ -206,32 +211,37 @@ async function performAction(action){
         });
         const data = await res.json();
         log(data.message);
-        showDialog(data.message);
+        showDialog(data.message, () => {
+            closeDialog();
+        });
         updateStatus(false);
     } catch(err){
         log("Fehler beim Senden der Aktion");
-        showDialog("Fehler beim Senden der Aktion");
+        showDialog("Fehler beim Senden der Aktion", () => {
+            closeDialog();
+        });
         console.error(err);
     }
 }
 
 // Dialog-Fenster
-function showDialog(msg){
+function showDialog(msg, action = () => {}){
     dialogMessage.textContent = msg;
     dialogBackdrop.style.display = "flex";
+    const btn = dialogBackdrop.querySelector('button');
+    btn.onclick = action;
 }
+
 function closeDialog(){
     dialogBackdrop.style.display = "none";
 }
 
 // Confirmation Dialog vor Start/Stop
 function confirmAction(action){
-    showDialog(`Willst du wirklich '${action.toUpperCase()}' ausführen?`);
-    const btn = dialogBackdrop.querySelector('button');
-    btn.onclick = () => {
+    showDialog(`Willst du wirklich '${action.toUpperCase()}' ausführen?`, () => {
         closeDialog();
         performAction(action);
-    };
+    });
 }
 
 // Log schreiben
@@ -245,7 +255,9 @@ function log(msg){
 updateStatus();
 
 // Optional: leichtes Polling alle 60 Sekunden
-setInterval(() => updateStatus(false), 60000);
+setInterval(() => {
+    updateStatus(false)
+}, 60000);
 </script>
 
 </body>
