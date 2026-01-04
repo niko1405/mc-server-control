@@ -1,5 +1,5 @@
 // js/actions.js
-import { ACTION, API_URL, STATUS } from "./config.js";
+import { ACTION, API_URL, STATUS, USER_INTENT } from "./config.js";
 import { log, LOG_TYPE } from "./logger.js";
 import { checkStatus } from "./status.js";
 import { el, showErrorInput } from "./dom.js";
