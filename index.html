@@ -1,81 +1,84 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Minecraft Server Control</title>
 
-  <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Server Control</title>
+
+    <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 </head>
+
 <body>
 
-<div class="dashboard-card">
-    
-    <div class="header">
-        <button class="btn-refresh-top" title="Alles aktualisieren">
-            <i class="fas fa-sync-alt" id="refreshIcon"></i>
-        </button>
+    <div class="dashboard-card">
 
-        <h1><i class="fas fa-cube"></i> MC Server Panel</h1>
-        
-        <div id="statusBadge" class="status-indicator status-offline">
-            <i id="statusIcon" class="fas fa-question-circle"></i>
-            <span id="statusText">Verbinde...</span>
-        </div>
-    </div>
-
-    <div class="server-info-box">
-        <div class="ip-display" title="Klicken zum Kopieren">
-            <span id="ipAddress">Lade IP...</span> <i class="fas fa-copy"></i>
-        </div>
-        <div class="shutdown-warning">
-            <i class="fas fa-stopwatch"></i>
-            <span>Auto-Shutdown nach 10min Inaktivität</span>
-        </div>
-    </div>
-
-    <div id="playerBox" class="player-box hidden">
-        <div class="player-header">
-            <i class="fas fa-users"></i> <span id="playerCount">0 / 0</span> Spieler online
-        </div>
-        <div id="playerList" class="player-list">
-            <span class="no-players">Niemand da... 🦗</span>
-        </div>
-    </div>
-
-    <div class="controls">
-        <div class="input-group">
-            <input type="password" id="passwordInput" placeholder="Passwort eingeben..." autocomplete="off">
-            <i class="fas fa-eye toggle-password" title="Passwort anzeigen"></i>
-        </div>
-        
-        <div id="messageArea" class="msg-area">Passwort erforderlich!</div>
-
-        <div class="btn-group">
-            <button class="btn-start">
-                <i class="fas fa-power-off"></i> Starten
+        <div class="header">
+            <button class="btn-refresh-top" title="Alles aktualisieren">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i>
             </button>
-            <button class="btn-stop">
-                <i class="fas fa-stop"></i> Stoppen
-            </button>
-        </div>
-    </div>
 
-    <div class="terminal-wrapper">
-        <button class="btn-clear" title="Log leeren">
-            <i class="fas fa-trash-alt"></i>
-        </button>
-        <div class="terminal" id="terminal">
-            <div class="log-entry">
-                <span class="log-time">System</span><span class="log-info">Dashboard initialisiert...</span>
+            <h1><i class="fas fa-cube"></i> MC Server Panel</h1>
+
+            <div id="statusBadge" class="status-indicator status-offline">
+                <i id="statusIcon" class="fas fa-question-circle"></i>
+                <span id="statusText">Verbinde...</span>
+            </div>
+        </div>
+
+        <div class="server-info-box">
+            <div class="ip-display" title="Klicken zum Kopieren">
+                <span id="ipAddress">Lade IP...</span> <i class="fas fa-copy"></i>
+            </div>
+            <div class="shutdown-warning">
+                <i class="fas fa-stopwatch"></i>
+                <span>Auto-Shutdown nach 10min Inaktivität</span>
+            </div>
+        </div>
+
+        <div id="playerBox" class="player-box hidden">
+            <div class="player-header">
+                <i class="fas fa-users"></i> <span id="playerCount">0 / 0</span> Spieler online
+            </div>
+            <div id="playerList" class="player-list">
+                <span class="no-players">Niemand da... 🦗</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <input type="password" id="passwordInput" name="password" placeholder="Passwort eingeben..." autocomplete="off">
+                <i class="fas fa-eye toggle-password" title="Passwort anzeigen"></i>
+            </div>
+
+            <div id="messageArea" class="msg-area">Passwort erforderlich!</div>
+
+            <div class="btn-group">
+                <button class="btn-start">
+                    <i class="fas fa-power-off"></i> Starten
+                </button>
+                <button class="btn-stop">
+                    <i class="fas fa-stop"></i> Stoppen
+                </button>
+            </div>
+        </div>
+
+        <div class="terminal-wrapper">
+            <button class="btn-clear" title="Log leeren">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+            <div class="terminal" id="terminal">
+                <div class="log-entry">
+                    <span class="log-time">System</span><span class="log-info">Dashboard initialisiert...</span>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script type="module" src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
 
 </body>
+
 </html>

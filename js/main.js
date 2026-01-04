@@ -4,7 +4,7 @@ import { el, togglePassword } from "./dom.js";
 import { log, clearLog } from "./logger.js";
 import { checkStatus, forceRefresh } from "./status.js";
 import { triggerAction } from "./actions.js";
-import { polling, resetActivityTimer } from "./polling";
+import { polling, resetActivityTimer } from "./polling.js";
 import { copyIp } from "./utils.js";
 
 window.addEventListener('mousemove', resetActivityTimer);
@@ -39,6 +39,6 @@ document
 
 document.querySelector(".toggle-password").addEventListener("click", togglePassword);
 
-log("Willkommen zum Minecraft Server Control Panel!");
+log("Willkommen im Minecraft Server Control Panel!");
 checkStatus();
 polling();

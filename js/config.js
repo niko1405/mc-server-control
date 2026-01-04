@@ -24,6 +24,12 @@ export const ACTION = {
   STOP: "stop",
 };
 
+export const USER_INTENT = {
+  BOOTING: "booting",
+  STOPPING: "stopping",
+  NONE: "none",
+};
+
 export const IDLE_TIMEOUT = 5 * 60 * 1000;
 
 export const NORMAL_POLLING_INTERVAL = 30 * 1000;

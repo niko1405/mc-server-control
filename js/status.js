@@ -1,19 +1,32 @@
 // js/status.js
-import { API_URL, STATUS } from "./config.js";
-import { updatePlayerInfo } from "./players.js";
+import { API_URL, STATUS, USER_INTENT } from "./config.js";
+import { updatePlayerInfo } from "./player.js";
 import { log } from "./logger.js";
 import { getState, setState, STATE } from "./state.js";
 import { spinRefreshIcon } from "./dom.js";
 
-/// Check the server status from the backend API
-export async function checkStatus(showLoading = true, fast_checking = false) {
+export const CHECK_STATUS_CONFIG = {
+    showLoading: true,
+    showLog: true,
+    updateState: true,
+    updatePlayerInfo: true,
+    manualRefresh: false,
+}
 
-    if (showLoading) {
+/// Check the server status from the backend API
+export async function checkStatus(configInput = CHECK_STATUS_CONFIG) {
+    const { status, userIntent } = getState();
+
+    const originalStatus = status;
+
+    const config = { ...CHECK_STATUS_CONFIG, ...configInput };
+
+    if (config.showLoading) {
         setState(STATE.STATUS, STATUS.LOADING);
         spinRefreshIcon();
     }
 
-    if(!fast_checking) await updatePlayerInfo();
+    if (config.updatePlayerInfo) await updatePlayerInfo();
 
     try {
 
@@ -21,11 +34,10 @@ export async function checkStatus(showLoading = true, fast_checking = false) {
         if (!res.ok) throw new Error(`Status check failed: ${res.json().message || res.statusText}`);
 
         const data = await res.json();
-        const { status, userIntent } = getState();
 
-        const hasChanged = data.status !== status;
+        const hasChanged = data.status !== originalStatus;
 
-        let message = data.message || `Status: ${data.status}`;
+        let message = data.message || `Status: ${data.originalStatus}`;
         let type = data.type || "info";
         let newStatus = data.status;
 
@@ -34,13 +46,13 @@ export async function checkStatus(showLoading = true, fast_checking = false) {
 
             switch (userIntent) {
 
-                case STATUS.BOOTING:
+                case USER_INTENT.BOOTING:
                     message = "⏳ Server wird gestartet...";
                     type = "warn";
                     newStatus = STATUS.BOOTING;
                     break;
 
-                case STATUS.STOPPING:
+                case USER_INTENT.STOPPING:
                     message = "💤 Server wird gestoppt...";
                     type = "warn";
                     newStatus = STATUS.STOPPING;
@@ -56,9 +68,9 @@ export async function checkStatus(showLoading = true, fast_checking = false) {
 
         }
 
-        if (hasChanged && !fast_checking) log(message, type);
+        if ((hasChanged && config.showLog) || config.manualRefresh) log(message, type);
 
-        if(!fast_checking) setState(STATE.STATUS, newStatus);
+        if (config.updateState) setState(STATE.STATUS, newStatus);
 
         return newStatus;
 
@@ -73,7 +85,11 @@ export async function checkStatus(showLoading = true, fast_checking = false) {
 }
 
 export function forceRefresh() {
+    const { status } = getState();
+
+    if (status === STATUS.LOADING || status === STATUS.BOOTING || status === STATUS.STOPPING) return;
+
     log("Manuelles Update angefordert...");
 
-    checkStatus();
+    checkStatus({ manualRefresh: true });
 }

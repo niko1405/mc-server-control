@@ -1,5 +1,5 @@
-import { STATUS } from "./config";
-import { render } from "./dom";
+import { STATUS, USER_INTENT } from "./config.js";
+import { render } from "./dom.js";
 
 export const STATE = {
   STATUS: "status",
@@ -13,7 +13,7 @@ export const STATE = {
 // js/state.js
 const state = {
   status: STATUS.LOADING,
-  userIntent: "unknown",
+  userIntent: USER_INTENT.NONE,
   isNetworkBusy: false,
   mc_data: { online: false, players: { online: 0, max: 0, list: [] } },
   lastActivityTime: Date.now(),

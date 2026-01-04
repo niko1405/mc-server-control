@@ -8,6 +8,7 @@ import { getState, setState, STATE } from "./state.js";
 
 // === Action Trigger ===
 export async function triggerAction(action) {
+    setState(STATE.USER_INTENT, USER_INTENT.NONE);
 
     const password = el.passwordInput.value.trim();
     if (!password) { showErrorInput("Bitte Passwort eingeben!"); return; }
@@ -55,7 +56,7 @@ export async function triggerAction(action) {
             showErrorInput("Passwort falsch!");
             log("Passwort falsch!", LOG_TYPE.ERROR);
             setState(STATE.POLLING_PAUSED, false);
-            checkStatus(false);
+            checkStatus({ showLoading: false, showLog: false });
 
             return;
         }
@@ -75,7 +76,7 @@ export async function triggerAction(action) {
 
                 log(data.message, LOG_TYPE.WARN);
                 setState(STATE.POLLING_PAUSED, false);
-                checkStatus(false);
+                checkStatus({ showLoading: false, showLog: false });
 
                 return;
             }
@@ -87,11 +88,13 @@ export async function triggerAction(action) {
                 case ACTION.START:
                     log("VM fährt hoch. Bitte warten...");
                     waitFor(STATUS.RUNNING);
+                    setState(STATE.USER_INTENT, USER_INTENT.BOOTING);
                     break;
 
                 case ACTION.STOP:
                     log("VM wird gestoppt. Bitte warten...");
                     setTimeout(() => waitFor(STATUS.STOPPED), 2000);
+                    setState(STATE.USER_INTENT, USER_INTENT.STOPPING);
                     break;
 
             }

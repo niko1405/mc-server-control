@@ -1,5 +1,5 @@
-import { el } from "./dom";
-import { LOG_TYPE } from "./logger";
+import { el } from "./dom.js";
+import { LOG_TYPE } from "./logger.js";
 
 export function copyIp() {
     navigator.clipboard.writeText(IP).then(() => {

@@ -1,11 +1,8 @@
 // js/players.js
-import { IP, MC_API_BaseURL, STATUS } from "./config.js";
-import { getState, setState } from "./state.js";
+import { IP, MC_API_BaseURL } from "./config.js";
+import { setState, STATE } from "./state.js";
 
 export async function updatePlayerInfo() {
-    const { status } = getState();
-    if (status !== STATUS.RUNNING && status !== STATUS.BOOTING) return;
-
     try {
         const res = await fetch(`${MC_API_BaseURL}/${IP}?t=${Date.now()}`);
         const data = await res.json();
@@ -18,6 +15,8 @@ export async function updatePlayerInfo() {
                 list: data.players?.list || []
             }
         };
+
+        console.log(newMCData);
 
         setState(STATE.MC_DATA, newMCData);
     } catch (e) {

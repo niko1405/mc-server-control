@@ -1,4 +1,5 @@
-import { STATUS } from "./config";
+import { STATUS } from "./config.js";
+import { getState } from "./state.js";
 
 // js/dom.js
 export const el = {
@@ -30,6 +31,7 @@ export function render() {
             uiClass = 'status-working';
             uiIcon = 'fa-sync-alt fa-spin';
             statusText = 'LADE...';
+            showPlayers = true;
             break;
 
 
@@ -99,7 +101,7 @@ export function render() {
         //no data yet
         if (!state.mc_data.online) {
             el.playerList.innerHTML = '<span class="no-players" style="color:var(--accent-yellow)"><i class="fas fa-cog fa-spin"></i> Warte auf Dienst...</span>';
-            el.playerCount.textContent = "- / -";
+            el.playerCount.textContent = "0 / 0";
             return;
         }
 

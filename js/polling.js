@@ -1,22 +1,20 @@
-import { ACTION, FAST_POLLING_INTERVAL, IDLE_TIMEOUT, NORMAL_POLLING_INTERVAL, STATUS } from "./config";
-import { setStatusUI } from "./dom";
-import { log, LOG_TYPE } from "./logger";
-import { getState, setState, STATE } from "./state";
-import { checkStatus } from "./status";
+import { FAST_POLLING_INTERVAL, IDLE_TIMEOUT, NORMAL_POLLING_INTERVAL, STATUS } from "./config.js";
+import { log, LOG_TYPE } from "./logger.js";
+import { getState, setState, STATE } from "./state.js";
+import { CHECK_STATUS_CONFIG, checkStatus } from "./status.js";
 
 let pollingIntervalId = null;
 
 // === AUTO REFRESH LOOP ===
 export function polling(showStartMsg = true) {
-    const { lastActivityTime, pollingPaused } = getState();
-
-    if (pollingPaused) return;
-
+    
     if (pollingIntervalId) clearInterval(pollingIntervalId);
 
     if(showStartMsg) log("Starte Auto-Refresh (alle 30s)");
 
     pollingIntervalId = setInterval(() => {
+
+        const { lastActivityTime, pollingPaused } = getState();
         
         if (Date.now() - lastActivityTime > IDLE_TIMEOUT) {
 
@@ -41,7 +39,7 @@ export function waitFor(targetStatus) {
 
     // Fast Polling every 3 seconds
     pollingIntervalId = setInterval(async () => {
-        const status = await checkStatus(false, true);
+        const status = await checkStatus({ showLoading: false, showLog: false, updateState: false, updatePlayerInfo: false  });
 
         if(status === STATUS.ERROR) return;
 
@@ -49,6 +47,7 @@ export function waitFor(targetStatus) {
 
             clearInterval(pollingIntervalId);
             setState(STATE.POLLING_PAUSED, false);
+            setState(STATE.USER_INTENT, STATE.USER_INTENT.NONE);
 
             switch (targetStatus) {
 
@@ -75,7 +74,8 @@ export function waitFor(targetStatus) {
 export function resetActivityTimer() {
     setState(STATE.LAST_ACTIVITY_TIME, Date.now());
 
-    log("Aktivität erkannt. Auto-Update fortgesetzt.");
-
-    polling();
+    if(!pollingIntervalId) {
+        log("Aktivität erkannt. Auto-Update fortgesetzt.");
+        polling();
+    } 
 }
