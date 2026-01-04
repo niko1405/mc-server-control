@@ -73,7 +73,6 @@ export function render() {
             uiClass = 'status-working';
             uiIcon = 'fa-exclamation-triangle';
             statusText = 'UNERREICHBAR';
-            showPlayers = false;
             break;
 
 
@@ -81,7 +80,6 @@ export function render() {
             uiClass = 'status-sleep';
             uiIcon = 'fa-moon';
             statusText = 'PAUSE';
-            showPlayers = false;
             break;
 
         default:

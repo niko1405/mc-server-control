@@ -13,6 +13,8 @@ export async function checkStatus(showLoading = true, fast_checking = false) {
         spinRefreshIcon();
     }
 
+    if(!fast_checking) await updatePlayerInfo();
+
     try {
 
         const res = await fetch(`${API_URL}?action=status`);
