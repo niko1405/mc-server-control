@@ -1,0 +1,11 @@
+import { el } from "./dom";
+import { LOG_TYPE } from "./logger";
+
+export function copyIp() {
+    navigator.clipboard.writeText(IP).then(() => {
+        log("IP Adresse kopiert!", LOG_TYPE.SUCCESS);
+        const original = el.ipLabel.textContent;
+        el.ipLabel.textContent = "Kopiert!";
+        setTimeout(() => el.ipLabel.textContent = original, 1000);
+    });
+}
