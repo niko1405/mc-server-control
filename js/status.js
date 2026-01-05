@@ -4,6 +4,7 @@ import { updatePlayerInfo } from "./player.js";
 import { log } from "./logger.js";
 import { getState, setState, STATE } from "./state.js";
 import { spinRefreshIcon } from "./dom.js";
+import { checkPolling } from "./polling.js";
 
 export const CHECK_STATUS_CONFIG = {
     showLoading: true,
@@ -59,7 +60,7 @@ export async function checkStatus(configInput = CHECK_STATUS_CONFIG) {
                     break;
 
                 default:
-                    message = "⚠️ Server ist nicht erreichbar! Bitte Stoppen & Neustarten.";
+                    message = "⚠️ Server ist nicht erreichbar! Bitte versuche es später erneut.";
                     type = "error";
                     newStatus = STATUS.SERVICE_OFFLINE;
                     break;
@@ -87,9 +88,11 @@ export async function checkStatus(configInput = CHECK_STATUS_CONFIG) {
 export function forceRefresh() {
     const { status } = getState();
 
-    if (status === STATUS.LOADING || status === STATUS.BOOTING || status === STATUS.STOPPING) return;
+    if (status === STATUS.LOADING || status === STATUS.BOOTING || status === STATUS.STOPPING || status === STATUS.BACKUPING) return;
 
     log("Manuelles Update angefordert...");
 
     checkStatus({ manualRefresh: true });
+
+    checkPolling();    
 }

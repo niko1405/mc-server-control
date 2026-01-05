@@ -95,6 +95,8 @@ export function render() {
     el.statusIcon.className = 'fas ' + uiIcon;
     el.statusText.textContent = statusText;
 
+    if(el.playerBox.classList.contains("hidden") && state.status === STATUS.LOADING) return; //avoid flicker
+
     el.playerBox.classList.toggle("hidden", !showPlayers);
 
     if (showPlayers) {

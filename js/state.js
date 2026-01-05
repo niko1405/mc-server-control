@@ -17,7 +17,7 @@ const state = {
   isNetworkBusy: false,
   mc_data: { online: false, players: { online: 0, max: 0, list: [] } },
   lastActivityTime: Date.now(),
-  pollingPaused: false
+  pollingPaused: false,
 };
 
 export function getState() {

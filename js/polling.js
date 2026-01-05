@@ -1,5 +1,5 @@
 import { FAST_POLLING_INTERVAL, IDLE_TIMEOUT, IP, NORMAL_POLLING_INTERVAL, STATUS } from "./config.js";
-import { log, LOG_TYPE } from "./logger.js";
+import { clearLog, log, LOG_TYPE } from "./logger.js";
 import { getState, setState, STATE } from "./state.js";
 import { CHECK_STATUS_CONFIG, checkStatus } from "./status.js";
 
@@ -7,17 +7,19 @@ let pollingIntervalId = null;
 
 // === AUTO REFRESH LOOP ===
 export function polling(showStartMsg = true) {
-    
-    if (pollingIntervalId) clearInterval(pollingIntervalId);
 
-    if(showStartMsg) log("Starte Auto-Refresh (alle 30s)");
+    if (pollingIntervalId) clearInterval(pollingIntervalId);
+    pollingIntervalId = null;
+
+    if (showStartMsg) log("Starte Auto-Refresh (alle 30s)");
 
     pollingIntervalId = setInterval(() => {
 
         const { lastActivityTime, pollingPaused } = getState();
-        
+
         if (Date.now() - lastActivityTime > IDLE_TIMEOUT) {
 
+            clearLog();
             log("Inaktivität erkannt. Auto-Update pausiert.");
             setState(STATE.STATUS, STATUS.SLEEP);
             clearInterval(pollingIntervalId);
@@ -26,7 +28,7 @@ export function polling(showStartMsg = true) {
         }
 
         // check status
-        if(!pollingPaused && !document.hidden) checkStatus();
+        if (!pollingPaused && !document.hidden) checkStatus();
 
     }, NORMAL_POLLING_INTERVAL);
 }
@@ -39,9 +41,9 @@ export function waitFor(targetStatus) {
 
     // Fast Polling every 3 seconds
     pollingIntervalId = setInterval(async () => {
-        const status = await checkStatus({ showLoading: false, showLog: false, updateState: false, updatePlayerInfo: false  });
+        const status = await checkStatus({ showLoading: false, showLog: false, updateState: false, updatePlayerInfo: false });
 
-        if(status === STATUS.ERROR) return;
+        if (status === STATUS.ERROR) return;
 
         if (status === targetStatus) {
 
@@ -72,10 +74,28 @@ export function waitFor(targetStatus) {
 }
 
 export function resetActivityTimer() {
+    const { status } = getState();
+
     setState(STATE.LAST_ACTIVITY_TIME, Date.now());
 
-    if(!pollingIntervalId) {
+    if (status === STATUS.SLEEP) {
+
         log("Aktivität erkannt. Auto-Update fortgesetzt.");
+        setState(STATE.STATUS, STATUS.LOADING);
+        setState(STATE.POLLING_PAUSED, false);
+
+        //manual check status once
+        checkStatus();
+
         polling();
-    } 
+
+    }
+}
+
+export function checkPolling() {
+    const { status } = getState();
+
+    if (status === STATUS.BOOTING || status === STATUS.STOPPING) return;
+
+    if (!pollingIntervalId) polling();
 }

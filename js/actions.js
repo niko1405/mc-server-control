@@ -1,5 +1,5 @@
 // js/actions.js
-import { ACTION, API_URL, STATUS, USER_INTENT } from "./config.js";
+import { ACTION, ACTION_TYPE, API_URL, STATUS, USER_INTENT } from "./config.js";
 import { log, LOG_TYPE } from "./logger.js";
 import { checkStatus } from "./status.js";
 import { el, showErrorInput } from "./dom.js";
@@ -16,8 +16,14 @@ export async function triggerAction(action) {
 
     const { status } = getState();
 
-    if(status === STATUS.SERVICE_OFFLINE) {
-        log("Der Server ist nicht erreichbar. Versuche Neustart oder später erneut.", LOG_TYPE.WARN);
+    const triesStopping = action.type === ACTION_TYPE.STOP || action.type === ACTION_TYPE.FORCE_STOP;
+
+    //checks if trying to stop when service is unavailable
+    const tryStopOnAvailable = (action.type === ACTION_TYPE.STOP || action.type === ACTION_TYPE.FORCE_STOP) && status === STATUS.SERVICE_OFFLINE;
+
+    // avoid trying to start when service is unavailable
+    if (status === STATUS.SERVICE_OFFLINE && action.type === ACTION_TYPE.START) {
+        log("Der Server ist nicht erreichbar. Bitte versuche es später erneut.", LOG_TYPE.WARN);
         return;
     }
 
@@ -26,27 +32,30 @@ export async function triggerAction(action) {
         return;
     }
 
-    if (action === ACTION.STOP && status === STATUS.STOPPED) {
+    if (triesStopping && status === STATUS.STOPPED) {
         log("Der Server ist bereits gestoppt.", LOG_TYPE.WARN);
         return;
     }
 
-    if (action === ACTION.START && status === STATUS.RUNNING) {
+    if (action.type === ACTION_TYPE.START && status === STATUS.RUNNING) {
         log("Der Server läuft bereits.", LOG_TYPE.SUCCESS);
         return;
     }
 
-    // Pause polling while action is in progress
-    setState(STATE.POLLING_PAUSED, true);
+    //pause polling
+    setState(STATE.POLLING_PAUSED, true); 
     clearPlayerInfo();
 
-    if (action === ACTION.STOP) {
-        log(`🛑 Sende Stopp-Signal...`, LOG_TYPE.WARN);
-        log(`⏳ <b>BACKUP LÄUFT...</b> Bitte warten! (Dauert ca. 70s)`, LOG_TYPE.INFO);
-        setState(STATE.STATUS, STATUS.BACKUPING);
-    } else {
-        log(`🚀 Sende Start-Signal...`, LOG_TYPE.INFO);
-        setState(STATE.STATUS, STATUS.BOOTING);
+    // Log action to terminal
+    log(action.label, LOG_TYPE.INFO);
+
+    setState(STATE.STATUS, action.status);
+
+    //give user feedback when stopping as backup may take time
+    if(action.type === ACTION_TYPE.STOP) {
+        if(tryStopOnAvailable) log("Versuche, den Server zu erreichen...");
+        
+        log(action.warn, LOG_TYPE.WARN);
     }
 
     try {
@@ -54,7 +63,7 @@ export async function triggerAction(action) {
         const res = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action, password })
+            body: JSON.stringify({ action: action.type, password })
         });
         const data = await res.json();
 
@@ -62,8 +71,9 @@ export async function triggerAction(action) {
 
             showErrorInput("Passwort falsch!");
             log("Passwort falsch!", LOG_TYPE.ERROR);
-            setState(STATE.POLLING_PAUSED, false);
+            log("Vorgang abgebrochen.", LOG_TYPE.ERROR);
             checkStatus({ showLoading: false, showLog: false });
+            setState(STATE.POLLING_PAUSED, false);
 
             return;
         }
@@ -82,23 +92,30 @@ export async function triggerAction(action) {
             if (data.status.includes('already')) {
 
                 log(data.message, LOG_TYPE.WARN);
-                setState(STATE.POLLING_PAUSED, false);
                 checkStatus({ showLoading: false, showLog: false });
+                setState(STATE.POLLING_PAUSED, false);
 
                 return;
             }
 
             log(data.message, LOG_TYPE.SUCCESS);
 
-            switch (action) {
+            switch (action.type) {
 
-                case ACTION.START:
+                case ACTION_TYPE.START:
                     log("VM fährt hoch. Bitte warten...");
                     waitFor(STATUS.RUNNING);
                     setState(STATE.USER_INTENT, USER_INTENT.BOOTING);
                     break;
 
-                case ACTION.STOP:
+                case ACTION_TYPE.STOP:
+                    log("VM wird gestoppt. Bitte warten...");
+                    setState(STATE.USER_INTENT, USER_INTENT.STOPPING);
+                    setState(STATE.STATUS, STATUS.STOPPING);
+                    setTimeout(() => waitFor(STATUS.STOPPED), 2000);
+                    break;
+
+                case ACTION_TYPE.FORCE_STOP:
                     log("VM wird gestoppt. Bitte warten...");
                     setState(STATE.USER_INTENT, USER_INTENT.STOPPING);
                     setState(STATE.STATUS, STATUS.STOPPING);
@@ -115,6 +132,6 @@ export async function triggerAction(action) {
         setState(STATE.STATUS, STATUS.ERROR);
         setState(STATE.POLLING_PAUSED, false);
         console.log(err.message);
-        
+
     }
 }

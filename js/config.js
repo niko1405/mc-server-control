@@ -19,9 +19,16 @@ export const STATUS = {
   ERROR: "error"
 };
 
-export const ACTION = {
+export const ACTION_TYPE = {
   START: "start",
   STOP: "stop",
+  FORCE_STOP: "forcestop",
+};
+
+export const ACTION = {
+  START: { type: ACTION_TYPE.START, label: "🚀 Sende Start-Signal...", warn: "", status: STATUS.BOOTING },
+  STOP: { type: ACTION_TYPE.STOP, label: "🛑 Sende Stopp-Signal...", warn: "⏳ <b>Frage BACKUP an...</b> Dies kann einige Zeit dauern. Bitte warten!", status: STATUS.BACKUPING },
+  FORCE_STOP: { type: ACTION_TYPE.FORCE_STOP, label: "💀 Sende FORCE STOP Signal...", warn: "Achtung: Dies kann zu Datenverlust führen!", status: STATUS.STOPPING },
 };
 
 export const USER_INTENT = {
