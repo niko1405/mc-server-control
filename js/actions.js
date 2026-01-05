@@ -5,6 +5,7 @@ import { checkStatus } from "./status.js";
 import { el, showErrorInput } from "./dom.js";
 import { waitFor } from "./polling.js";
 import { getState, setState, STATE } from "./state.js";
+import { clearPlayerInfo } from "./player.js";
 
 // === Action Trigger ===
 export async function triggerAction(action) {
@@ -14,6 +15,11 @@ export async function triggerAction(action) {
     if (!password) { showErrorInput("Bitte Passwort eingeben!"); return; }
 
     const { status } = getState();
+
+    if(status === STATUS.SERVICE_OFFLINE) {
+        log("Der Server ist nicht erreichbar. Versuche Neustart oder später erneut.", LOG_TYPE.WARN);
+        return;
+    }
 
     if (status === STATUS.BOOTING || status === STATUS.STOPPING || status === STATUS.BACKUPING || status === STATUS.LOADING) {
         log("Bitte warte auf Abschluss des laufenden Prozesses...", LOG_TYPE.WARN);
@@ -32,6 +38,7 @@ export async function triggerAction(action) {
 
     // Pause polling while action is in progress
     setState(STATE.POLLING_PAUSED, true);
+    clearPlayerInfo();
 
     if (action === ACTION.STOP) {
         log(`🛑 Sende Stopp-Signal...`, LOG_TYPE.WARN);
@@ -93,8 +100,9 @@ export async function triggerAction(action) {
 
                 case ACTION.STOP:
                     log("VM wird gestoppt. Bitte warten...");
-                    setTimeout(() => waitFor(STATUS.STOPPED), 2000);
                     setState(STATE.USER_INTENT, USER_INTENT.STOPPING);
+                    setState(STATE.STATUS, STATUS.STOPPING);
+                    setTimeout(() => waitFor(STATUS.STOPPED), 2000);
                     break;
 
             }

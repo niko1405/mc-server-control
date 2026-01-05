@@ -1,4 +1,4 @@
-import { FAST_POLLING_INTERVAL, IDLE_TIMEOUT, NORMAL_POLLING_INTERVAL, STATUS } from "./config.js";
+import { FAST_POLLING_INTERVAL, IDLE_TIMEOUT, IP, NORMAL_POLLING_INTERVAL, STATUS } from "./config.js";
 import { log, LOG_TYPE } from "./logger.js";
 import { getState, setState, STATE } from "./state.js";
 import { CHECK_STATUS_CONFIG, checkStatus } from "./status.js";

@@ -16,10 +16,19 @@ export async function updatePlayerInfo() {
             }
         };
 
-        console.log(newMCData);
-
         setState(STATE.MC_DATA, newMCData);
     } catch (e) {
         console.warn("Error while trying to update player info with MC-API", e);
     }
+}
+
+export const clearPlayerInfo = () => {
+    setState(STATE.MC_DATA, {
+        online: false,
+        players: {
+            online: 0,
+            max: 0,
+            list: []
+        }
+    });
 }
