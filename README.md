@@ -102,7 +102,7 @@ Bevor die VM gestoppt wird, führt das Skript folgende Schritte aus:
 
 ## 📸 Screenshots
 
-
+![Dashboard Ansicht](./screenshots/dashboard.png)
 
 ---
 
