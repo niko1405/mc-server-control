@@ -1,4 +1,4 @@
-# ☁️ Azure VM Game Server Manager
+# Azure VM Game Server Manager
 
 Ein kosteneffizientes Fullstack-System zur On-Demand-Steuerung von Azure Virtual Machines. Entwickelt, um Hosting-Kosten für Game-Server (Minecraft) durch intelligente Automatisierung und Serverless-Technologie um bis zu 80% zu senken.
 
@@ -7,22 +7,22 @@ Ein kosteneffizientes Fullstack-System zur On-Demand-Steuerung von Azure Virtual
 
 ---
 
-## 🎯 Das Problem
+## Problem
 Cloud-Ressourcen sind teuer. Ein dedizierter Game-Server, der 24/7 läuft, verursacht hohe Kosten, selbst wenn niemand spielt. Das manuelle Starten über das Azure Portal ist für Endanwender (Mitspieler) zu komplex und sicherheitstechnisch bedenklich (RBAC).
 
-## 💡 Die Lösung
+## Lösung
 Eine **Serverless Middleware** (Azure Functions), die als sicheres Gateway zwischen einem **React Frontend** und der **Azure Management API** fungiert. Kombiniert mit **OS-Level-Skripten** auf der Linux-VM, die Inaktivität erkennen und die Maschine automatisch herunterfahren.
 
-### ✨ Key Features
+### Key Features
 
-* **💸 Cost Optimization:** Server läuft nur bei Bedarf. Automatische Abschaltung (Deallocation) nach 10 Minuten Inaktivität.
-* **🔒 Secure Access:** Authentifizierung über Hash-Vergleich in der Azure Function. Kein direkter Zugriff auf Azure Credentials für den Client.
-* **⚡ Smart Polling:** Das Dashboard fragt den Status intelligent ab (30s Intervalle) und verhindert redundante API-Calls durch Multi-Tab-Synchronisation.
-* **💾 Graceful Shutdown & Backup:** Kein "Hard Kill". Der Server speichert den Welt-Status, lädt ein Backup in einen Azure Blob Container und fährt erst dann die VM herunter.
+* **Cost Optimization:** Server läuft nur bei Bedarf. Automatische Abschaltung (Deallocation) nach 10 Minuten Inaktivität.
+* **Secure Access:** Authentifizierung über Hash-Vergleich in der Azure Function. Kein direkter Zugriff auf Azure Credentials für den Client.
+* **Smart Polling:** Das Dashboard fragt den Status intelligent ab (30s Intervalle) und verhindert redundante API-Calls durch Multi-Tab-Synchronisation.
+* **Graceful Shutdown & Backup:** Kein "Hard Kill". Der Server speichert den Welt-Status, lädt ein Backup in einen Azure Blob Container und fährt erst dann die VM herunter.
 
 ---
 
-## 🏗 Architektur
+## Architektur
 
 ```mermaid
 graph LR
@@ -41,7 +41,7 @@ graph LR
 
 ---
 
-## 🛠 Deep Dive: Automatisierung
+## Deep Dive: Automatisierung
 
 Das Herzstück des Projekts ist nicht nur das Starten, sondern das sichere und automatische Beenden.
 
@@ -75,7 +75,7 @@ Bevor die VM gestoppt wird, führt das Skript folgende Schritte aus:
 
 ---
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ### Voraussetzungen
 * Azure Subscription
@@ -100,7 +100,7 @@ Bevor die VM gestoppt wird, führt das Skript folgende Schritte aus:
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ![Dashboard Ansicht](./screenshots/dashboard.png)
 
