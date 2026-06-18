@@ -48,13 +48,13 @@ export async function checkStatus(configInput = CHECK_STATUS_CONFIG) {
             switch (userIntent) {
 
                 case USER_INTENT.BOOTING:
-                    message = "⏳ Server wird gestartet...";
+                    message = "Server wird gestartet...";
                     type = "warn";
                     newStatus = STATUS.BOOTING;
                     break;
 
                 case USER_INTENT.STOPPING:
-                    message = "💤 Server wird gestoppt...";
+                    message = "Server wird gestoppt...";
                     type = "warn";
                     newStatus = STATUS.STOPPING;
                     break;

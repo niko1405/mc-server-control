@@ -55,7 +55,7 @@ export function waitFor(targetStatus) {
 
                 case STATUS.RUNNING:
                     setState(STATE.STATUS, STATUS.RUNNING);
-                    log(`🚀 Start abgeschlossen!`, LOG_TYPE.SUCCESS);
+                    log(`Start abgeschlossen!`, LOG_TYPE.SUCCESS);
                     log(`👉 <b>Joine jetzt: ${IP}</b>`);
                     break;
 
